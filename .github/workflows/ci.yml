@@ -2,23 +2,114 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
 
 jobs:
-  ci:
+  quality:
+    name: Lint, types and unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+
       - run: npm ci
       - run: npx astro sync
-      - run: npm run lint
-      - run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx astro check
+
+      - name: Unit tests
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [node, cloudflare]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npx astro sync
+
+      # The Cloudflare target is built here because it cannot be built on the
+      # maintainer's machine; see context/foundation/infrastructure.md.
+      - name: Build
+        run: ${{ matrix.target == 'cloudflare' && 'npm run build:cf' || 'npm run build' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+      - run: npx astro sync
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Starting the local stack also applies everything in supabase/migrations,
+      # so the tests run against the schema this repository defines.
+      - name: Start Supabase
+        run: npx supabase start
+
+      - name: Export Supabase credentials
+        run: |
+          npx supabase status -o json > supabase-status.json
+          echo "SUPABASE_URL=$(jq -r '.API_URL' supabase-status.json)" >> "$GITHUB_ENV"
+          echo "SUPABASE_KEY=$(jq -r '.ANON_KEY' supabase-status.json)" >> "$GITHUB_ENV"
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Stop Supabase
+        if: always()
+        run: npx supabase stop --no-backup

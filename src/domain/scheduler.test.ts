@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { weekdayIndex } from "./date";
-import { DEFAULT_MIN_BLOCK_MINUTES, generatePlan, isSchedulable, remainingMinutes, urgencyScore } from "./scheduler";
+import {
+  DEFAULT_MIN_BLOCK_MINUTES,
+  generatePlan,
+  isSchedulable,
+  remainingCapacity,
+  remainingMinutes,
+  urgencyScore,
+} from "./scheduler";
 import type { Availability, Topic } from "./types";
 
 /** A Monday. Every test plans this week. */
@@ -299,6 +306,39 @@ describe("allocation", () => {
 
     expect(minutesForTopic(plan.sessions, "a")).toBe(120);
     expect(plan.unscheduledMinutes).toBe(480);
+  });
+});
+
+describe("remainingCapacity", () => {
+  it("keeps the whole week when it is still ahead", () => {
+    expect(remainingCapacity(HOUR_EVERY_DAY, MONDAY, MONDAY)).toEqual([60, 60, 60, 60, 60, 60, 60]);
+  });
+
+  it("zeroes days that have already passed", () => {
+    // Planning on the Thursday of that week.
+    expect(remainingCapacity(HOUR_EVERY_DAY, MONDAY, "2026-09-17")).toEqual([0, 0, 0, 60, 60, 60, 60]);
+  });
+
+  it("leaves nothing when the week is over", () => {
+    expect(remainingCapacity(HOUR_EVERY_DAY, MONDAY, "2026-09-28")).toEqual([0, 0, 0, 0, 0, 0, 0]);
+  });
+
+  it("does not invent capacity on a day the learner kept free", () => {
+    const availability: Availability = [60, 0, 60, 60, 60, 60, 60];
+
+    expect(remainingCapacity(availability, MONDAY, "2026-09-16")).toEqual([0, 0, 60, 60, 60, 60, 60]);
+  });
+
+  it("stops the planner from filling evenings that are gone", () => {
+    const plan = generatePlan({
+      weekStart: MONDAY,
+      topics: [topic({ id: "a", estimatedMinutes: 600 })],
+      availability: remainingCapacity(HOUR_EVERY_DAY, MONDAY, "2026-09-18"),
+    });
+
+    const dates = plan.sessions.map((session) => session.date);
+    expect(dates.every((date) => date >= "2026-09-18")).toBe(true);
+    expect(dates).toHaveLength(3);
   });
 });
 

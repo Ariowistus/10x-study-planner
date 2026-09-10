@@ -1,54 +1,104 @@
 # Rules for AI
 
-This file provides guidance to AI Agent when working with code in this repository.
+Guidance for AI agents working in this repository. Project contracts live in
+`context/foundation/`: `prd.md` (what and why), `tech-stack.md` (with what),
+`infrastructure.md` (where it runs), and `lessons.md` (rules earned from real
+mistakes — read it before planning).
 
 ## Commands
 
-- `npm run dev` — start dev server (Cloudflare workerd runtime)
-- `npm run build` — production build (SSR via `@astrojs/cloudflare`)
-- `npm run preview` — preview production build
-- `npm run lint` — ESLint with type-checked rules
-- `npm run lint:fix` — auto-fix lint issues
-- `npm run format` — Prettier (includes prettier-plugin-astro + prettier-plugin-tailwindcss)
+| Purpose | Command |
+| --- | --- |
+| Dev server | `npm run dev` |
+| Build (local, Node adapter) | `npm run build` |
+| Build (production, Cloudflare) | `npm run build:cf` |
+| Serve the built app | `npm run start` |
+| Lint | `npm run lint` / `npm run lint:fix` |
+| Type check | `npx astro check` |
+| Unit tests | `npm run test:unit` |
+| End-to-end tests | `npm run test:e2e` |
 
-Pre-commit hooks: husky + lint-staged runs `eslint --fix` on `*.{ts,tsx,astro}` and `prettier --write` on `*.{json,css,md}`.
+## Two build targets — do not remove one
 
-## Architecture
+`astro.config.mjs` picks its adapter from `DEPLOY_TARGET`: Node by default,
+Cloudflare when it is set to `cloudflare`.
 
-**Astro 6 SSR app** with React 19 islands, Tailwind 4, Supabase auth, and shadcn/ui components. Deployed to Cloudflare Workers.
+This is not an accident and not legacy. The Cloudflare adapter boots `workerd`
+through miniflare during dev *and* build, and that runtime aborts on the
+maintainer's Windows machine, so local work is impossible with it. CI builds
+both targets on Linux, which is where the Cloudflare build is proven. The
+reasoning and what was ruled out are recorded in `infrastructure.md`.
 
-### Rendering mode
+Consequence for anything you write: **no Cloudflare-only API**. No KV, no R2,
+no Images binding, no `caches.default`. Anything that runs on one target has to
+run on the other.
 
-Full server-side rendering (`output: "server"` in astro.config.mjs). All pages are server-rendered by default. API routes must export `const prerender = false`.
+## Where things belong
 
-### Auth flow
+- `src/domain/` — the scheduling rule and its types. **Pure**: no database, no
+  network, no clock, no framework import. This is the only part of the codebase
+  with real algorithmic content, and its purity is why it can be tested
+  exhaustively. Keep it that way.
+- `src/lib/repository.ts` — every database call. Nothing else talks to Supabase.
+- `src/lib/planning.ts` — glue between the two: loads state, calls the domain,
+  writes the result back.
+- `src/lib/validation.ts` — Zod schemas. Every endpoint parses its input here
+  before doing anything.
+- `src/pages/api/` — thin. Authenticate, validate, delegate, redirect.
 
-- `src/lib/supabase.ts` — creates a Supabase SSR client using `@supabase/ssr` with cookie-based sessions. Uses `astro:env/server` for `SUPABASE_URL` and `SUPABASE_KEY` (server-only secrets declared in astro.config.mjs `env.schema`).
-- `src/middleware.ts` — runs on every request, resolves the current user, attaches to `context.locals.user`. Redirects unauthenticated users away from routes listed in `PROTECTED_ROUTES`.
-- API endpoints: `src/pages/api/auth/{signin,signup,signout}.ts`
-- Auth pages: `src/pages/auth/{signin,signup,confirm-email}.astro`
-- Protected page example: `src/pages/dashboard.astro`
+If you find yourself adding a date calculation or an allocation decision to a
+page or an endpoint, it belongs in `src/domain/` with a test.
 
-### Key conventions
+## Conventions that are not obvious from the code
 
-- **Path alias**: `@/*` maps to `./src/*` (tsconfig paths).
-- **Astro components** for static content/layout; **React components** only when interactivity is needed.
-- **Tailwind class merging**: use the `cn()` helper from `@/lib/utils` (clsx + tailwind-merge) for conditional/merged class names. Do not concatenate class strings manually.
-- **shadcn/ui**: components live in `src/components/ui/`, "new-york" style variant. Install new ones with `npx shadcn@latest add [name]`.
-- **API routes**: use uppercase `GET`, `POST` exports; validate input with zod.
-- **Supabase migrations**: `supabase/migrations/` using naming format `YYYYMMDDHHmmss_short_description.sql`. Always enable RLS on new tables with granular per-operation, per-role policies.
-- **React**: no Next.js directives ("use client" etc.). Extract hooks to `src/components/hooks/`.
-- **Services/helpers** go in `src/lib/` (or `src/lib/services/` for extracted business logic).
-- **Shared types** (entities, DTOs) go in `src/types.ts`.
+- **Weekday 0 is Monday** everywhere: the `availability` table, the
+  `Availability` tuple, `weekdayIndex()`. JavaScript's `getDay()` uses Sunday as
+  0, so never pass it around unconverted.
+- **Dates are `YYYY-MM-DD` strings, never `Date` objects**, once they leave
+  `src/domain/date.ts`. The planner works in calendar days; a timezone shift
+  that moves a session to the wrong evening is a real bug.
+- **Forms, not fetch.** The UI posts ordinary HTML forms and the endpoints
+  redirect back with `?ok=` or `?error=`. This keeps the app working without
+  client JavaScript and makes the end-to-end tests stable. Do not convert these
+  to client-side fetch calls without a reason.
+- **HTML forms cannot send PATCH or DELETE**, so the intended verb arrives in an
+  `_action` field. See `src/pages/api/topics/[id].ts`.
+- **Session progress goes through `set_session_status`**, the Postgres function.
+  Never update `sessions.status` and `topics.completed_minutes` as two separate
+  writes: they would drift apart on a partial failure.
+- **`src/lib/database.types.ts` is hand-written.** There is no code generation
+  step. Change it in the same commit as any migration, or queries silently go
+  back to `any` and the strict lint rules start failing in confusing places.
 
-### Environment
+## Database
 
-- Node.js v22.14.0 (see `.nvmrc`)
-- Env vars: `SUPABASE_URL`, `SUPABASE_KEY` (copy `.env.example` to `.env` for Node, or `.dev.vars` for Cloudflare local dev)
-- Local Supabase: `npx supabase start` (requires Docker)
-- Cloudflare local dev: secrets go in `.dev.vars` (gitignored)
-- Deploy: `npx wrangler deploy` (requires Cloudflare account + `wrangler` auth)
+- Migrations live in `supabase/migrations/`, named `YYYYMMDDHHmmss_description.sql`.
+- **Every new table needs row level security enabled and an ownership policy.**
+  Learner isolation is a stated requirement (FR-007), not a nicety, and it is
+  enforced in the database rather than in application code.
+- Every learner-owned row carries `user_id`.
+- Local database: `npx supabase start` (needs Docker; not available on the
+  maintainer's machine, so this path is exercised in CI).
+
+## Testing
+
+- The scheduling rule is covered by unit tests in `src/domain/`. If you change
+  its behaviour, change the tests deliberately — do not adjust an assertion to
+  make a run go green.
+- End-to-end tests in `e2e/` cover the user-visible flow and run against a
+  production build.
+- Test identifiers use `data-testid`. Keep them when editing markup.
+
+## Environment
+
+- Node 22 (`.nvmrc`).
+- `SUPABASE_URL` and `SUPABASE_KEY`; copy `.env.example` to `.env`.
+- The app still renders without them: `createClient` returns `null` and pages
+  show a configuration message instead of crashing. Preserve that behaviour.
 
 ## CI
 
-GitHub Actions workflow (`.github/workflows/ci.yml`) runs lint + build on every push and PR to master. Requires `SUPABASE_URL` and `SUPABASE_KEY` repository secrets for the build step.
+`.github/workflows/ci.yml` runs on `main`: lint, type check, unit tests with
+coverage thresholds, both builds, and end-to-end tests against a Supabase
+instance started in the runner. Deployment is a separate manually triggered
+workflow.

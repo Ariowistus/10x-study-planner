@@ -1,5 +1,13 @@
 import { addDays, differenceInDays, weekdayIndex } from "./date";
-import type { GeneratePlanInput, GeneratePlanResult, IsoDate, PlannedSession, Priority, Topic } from "./types";
+import type {
+  Availability,
+  GeneratePlanInput,
+  GeneratePlanResult,
+  IsoDate,
+  PlannedSession,
+  Priority,
+  Topic,
+} from "./types";
 
 /**
  * The scheduling rule.
@@ -55,6 +63,27 @@ export function urgencyScore(topic: Topic, onDate: IsoDate, remaining: number): 
 
   const requiredPace = remaining / (daysLeft + 1);
   return requiredPace * priorityFactor(topic.priority);
+}
+
+/**
+ * Removes the capacity of days that have already passed.
+ *
+ * Generating a plan on a Thursday should not put work on Monday evening. The
+ * planner itself has no notion of "now" — that would make it untestable — so
+ * the current date is applied here, before scheduling, as a change to the
+ * available capacity.
+ */
+export function remainingCapacity(availability: Availability, weekStart: IsoDate, today: IsoDate): Availability {
+  const result: number[] = [...availability];
+
+  for (let offset = 0; offset < 7; offset += 1) {
+    const date = addDays(weekStart, offset);
+    if (differenceInDays(today, date) < 0) {
+      result[weekdayIndex(date)] = 0;
+    }
+  }
+
+  return [result[0], result[1], result[2], result[3], result[4], result[5], result[6]];
 }
 
 interface Candidate {

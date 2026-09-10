@@ -1,5 +1,5 @@
 import { addDays, startOfWeek, weekdayIndex } from "@/domain/date";
-import { generatePlan, remainingMinutes } from "@/domain/scheduler";
+import { generatePlan, remainingCapacity, remainingMinutes } from "@/domain/scheduler";
 import type { Availability, IsoDate, SessionStatus, Topic } from "@/domain/types";
 import {
   deletePlannedSessionsInRange,
@@ -77,7 +77,9 @@ export async function regenerateWeek(db: Db, userId: string, weekStart: IsoDate)
 
   const settled = existing.filter((session) => session.status !== "planned");
 
-  const adjusted: number[] = [...availability];
+  // Days that already passed cannot be planned into, and evenings already spent
+  // on a settled session no longer have that capacity to give.
+  const adjusted: number[] = [...remainingCapacity(availability, weekStart, todayIso())];
   for (const session of settled) {
     const index = weekdayIndex(session.scheduled_date);
     adjusted[index] = Math.max(0, adjusted[index] - session.minutes);

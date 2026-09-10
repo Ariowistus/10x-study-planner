@@ -1,175 +1,148 @@
-# 10x Astro Starter
+# 10x Study Planner
 
-![](./public/template.png)
+Turns a topic list, a deadline and a realistic weekly budget of evening minutes
+into a dated study plan — and keeps that plan honest when real life interferes
+with it.
 
-A modern, opinionated starter template for building fast, accessible web applications.
+Built as the course project for 10xDevs 3.0.
 
-## Tech Stack
+## The idea
 
-- [Astro](https://astro.build/) v6 - Modern web framework with server-first rendering
-- [React](https://react.dev/) v19 - UI library for interactive components
-- [TypeScript](https://www.typescriptlang.org/) v5 - Type-safe JavaScript
-- [Tailwind CSS](https://tailwindcss.com/) v4 - Utility-first CSS framework
-- [Supabase](https://supabase.com/) - Authentication and backend-as-a-service
-- [Cloudflare Workers](https://workers.cloudflare.com/) - Edge deployment runtime
+Someone preparing for a dated exam usually knows *what* they have to cover. What
+they do badly, especially when tired, is decide *when*. Comfortable topics get
+revisited; large or unpleasant ones slide until there is no time left.
 
-## Prerequisites
+That allocation is a small optimisation problem. This application does it, and
+redoes it after every completed or skipped session so the plan does not go stale
+within a week.
 
-- Node.js v22.14.0 (as specified in `.nvmrc`)
-- npm (comes with Node.js)
+**The rule, in one sentence:**
 
-## Getting Started
+> The planner allocates each week's declared available minutes to study topics
+> in descending order of an urgency score derived from priority, remaining
+> minutes and days remaining until the deadline, and recomputes the allocation
+> whenever a session is completed or skipped.
 
-1. Clone the repository:
+Concretely: urgency is the daily pace a topic would need to finish on time,
+weighted by priority. Deadline pressure therefore beats mere importance, and
+because urgency falls as remaining work shrinks, topics under similar pressure
+interleave instead of one of them swallowing the week.
 
-```bash
-git clone https://github.com/przeprogramowani/10x-astro-starter.git
-cd 10x-astro-starter
-```
+## What it does
 
-2. Install dependencies:
+- Email and password accounts; each learner's data is isolated in the database.
+- Create, edit and delete study topics with an estimate, a priority and an
+  optional deadline.
+- Declare how many minutes are available on each weekday. Zero is meaningful.
+- Generate a week of dated sessions, never exceeding a day's declared minutes.
+- Mark a session done or skipped and watch topic progress follow.
+- Regenerate a week without losing the record of what was already done.
+
+## Stack
+
+Astro 6 · React 19 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL and
+auth) · Vitest · Playwright · Cloudflare Workers
+
+## Getting started
+
+Requires Node 22 (see `.nvmrc`).
 
 ```bash
 npm install
+cp .env.example .env      # then fill in the two values below
+npm run dev               # http://localhost:4321
 ```
 
-3. Set up Supabase and configure environment variables — see [Supabase Configuration](#supabase-configuration) below.
-
-4. Create a `.dev.vars` file for local Cloudflare dev secrets:
-
-```bash
-cp .env.example .dev.vars
-```
-
-5. Run the development server:
-
-```bash
-npm run dev
-```
-
-## Available Scripts
-
-- `npm run dev` - Start development server (Cloudflare workerd runtime)
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint with type-checked rules
-- `npm run lint:fix` - Auto-fix ESLint issues
-- `npm run format` - Run Prettier
-
-## Project Structure
-
-```md
-.
-├── src/
-│ ├── layouts/ # Astro layouts
-│ ├── pages/ # Astro pages
-│ │ └── api/ # API endpoints
-│ ├── components/ # UI components (Astro & React)
-│ └── assets/ # Static assets
-├── public/ # Public assets
-├── wrangler.jsonc # Cloudflare Workers config
-```
-
-## Supabase Configuration
-
-This project uses [Supabase](https://supabase.com/) for authentication. Environment variables are declared via Astro's `astro:env` schema and are treated as **server-only secrets** — they are never exposed to the client.
-
-### First-time setup (local, no cloud project needed)
-
-Requires [Docker](https://www.docker.com/) and ~7 GB RAM.
-
-1. Create your `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-2. Initialize the local Supabase project (creates a `supabase/` config folder):
-
-```bash
-npx supabase init
-```
-
-3. Start the local stack (downloads Docker images on first run):
-
-```bash
-npx supabase start
-```
-
-4. Copy the credentials printed by the CLI into your `.env` and `.dev.vars`:
-
-```
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_KEY=<anon key from CLI output>
-```
-
-5. To stop the stack when done:
-
-```bash
-npx supabase stop
-```
-
-The local Studio UI is available at `http://localhost:54323`.
-
-No database tables or migrations are required — this project uses Supabase Auth's built-in `auth.users` table only.
-
-### Using a cloud Supabase project instead
-
-If you prefer to use a hosted Supabase project, add these variables to your `.env` and `.dev.vars` files:
-
-| Variable       | Description                                                |
-| -------------- | ---------------------------------------------------------- |
-| `SUPABASE_URL` | Project URL from Supabase dashboard → Settings → API       |
-| `SUPABASE_KEY` | `anon` public key from Supabase dashboard → Settings → API |
+`.env` needs a Supabase project:
 
 ```
 SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_KEY=<anon-key>
+SUPABASE_KEY=<anon public key>
 ```
 
-### Email confirmation in local development
+Create a project at [supabase.com](https://supabase.com), then apply
+`supabase/migrations/20260910120000_initial_schema.sql` — either by pasting it
+into the SQL editor in the dashboard, or with `npx supabase db push` against a
+linked project.
 
-By default Supabase requires email confirmation before a user can sign in. To skip this during local development:
+Without these values the application still starts and renders a configuration
+notice instead of crashing.
 
-1. Open the Supabase dashboard for your project
-2. Go to **Authentication → Email → Confirm email**
-3. Toggle it **off**
+## Commands
 
-Users can then sign in immediately after sign-up without clicking a confirmation link.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | development server |
+| `npm run build` | production build, Node adapter |
+| `npm run build:cf` | production build, Cloudflare adapter |
+| `npm run start` | serve the built application |
+| `npm run lint` | ESLint with type-checked rules |
+| `npm run test:unit` | unit tests |
+| `npm run test:coverage` | unit tests with coverage thresholds |
+| `npm run test:e2e` | end-to-end tests against a production build |
 
-### Auth routes
+## Layout
 
-| Route                 | Description                                                             |
-| --------------------- | ----------------------------------------------------------------------- |
-| `/auth/signin`        | Email/password sign-in form                                             |
-| `/auth/signup`        | Email/password sign-up form                                             |
-| `/auth/confirm-email` | Post-signup "check your inbox" page                                     |
-| `/dashboard`          | Example protected page (redirects to `/auth/signin` if unauthenticated) |
-
-Route protection is handled in `src/middleware.ts`. Add paths to the `PROTECTED_ROUTES` array there to require authentication.
-
-## Deployment
-
-This project deploys to [Cloudflare Workers](https://workers.cloudflare.com/).
-
-1. Build the project:
-
-```bash
-npm run build
+```
+src/domain/      the scheduling rule and its tests — pure, no I/O
+src/lib/         repository, planning service, validation, Supabase client
+src/pages/       routes and API endpoints
+src/components/  React islands
+supabase/        migrations
+e2e/             Playwright specs
+context/         project contracts: PRD, tech stack, infrastructure, test plan
 ```
 
-2. Deploy with Wrangler:
+The interesting file is `src/domain/scheduler.ts`. It is a pure function, which
+is why it can be tested exhaustively without a database or a browser.
 
-```bash
-npx wrangler deploy
-```
+## Two build targets
 
-Set `SUPABASE_URL` and `SUPABASE_KEY` as secrets in your Cloudflare dashboard or via `npx wrangler secret put`.
+The adapter is chosen by `DEPLOY_TARGET`: Node by default, Cloudflare when set
+to `cloudflare`.
 
-## CI
+The Cloudflare adapter starts the `workerd` runtime through miniflare during
+both `astro dev` and `astro build`, and that runtime aborts with an access
+violation on the machine this was developed on. Local work therefore runs on
+Node, and the Cloudflare build is produced and verified on Linux in CI. The
+application uses no Cloudflare-specific binding, so the two builds differ only
+in their server entrypoint.
 
-GitHub Actions runs lint + build on every push and PR to `master`. Configure `SUPABASE_URL` and `SUPABASE_KEY` as repository secrets in GitHub for the build step.
+What was checked before settling on this is written down in
+`context/foundation/infrastructure.md`.
 
-## License
+## Testing
 
-MIT
+Unit tests cover the scheduling rule: capacity is never exceeded, large topics
+are split rather than truncated, deadlines outrank priority, finished topics
+stop being scheduled, and the same input always produces the same plan.
+
+End-to-end tests cover the flow a learner actually walks, plus the property that
+matters most — a second learner sees none of the first learner's data.
+
+Reasoning behind the split, and what is deliberately left untested, is in
+`context/foundation/test-plan.md`.
+
+## Continuous integration
+
+Every push and pull request to `main` runs lint, type checking, unit tests with
+coverage thresholds, both build targets, and the end-to-end suite against a
+Supabase instance started inside the runner.
+
+Deployment is a separate, manually triggered workflow, so publishing is never a
+side effect of merging. It needs four repository secrets: `SUPABASE_URL`,
+`SUPABASE_KEY`, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+## Status and limitations
+
+This is a course MVP, and the boundaries are deliberate.
+
+- No mobile client, no sharing, no reminders, no content storage. The
+  application decides what to study and for how long; it holds no material.
+- Weeks run Monday to Sunday and are not configurable.
+- A topic whose deadline has passed is treated as maximally urgent rather than
+  archived. Whether that is the right default is still open.
+- The week boundary follows the server clock, not the learner's timezone.
+
+The full list of what was deliberately excluded is under "Non-goals" in
+`context/foundation/prd.md`.
