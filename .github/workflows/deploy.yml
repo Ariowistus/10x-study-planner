@@ -13,6 +13,9 @@ jobs:
     name: Deploy to Cloudflare Workers
     runs-on: ubuntu-latest
     environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +35,19 @@ jobs:
 
       - name: Publish
         run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # The application reads its Supabase credentials from the Worker's own
+      # environment at request time, not from the bundle. Syncing them here
+      # keeps GitHub the single place those values are held.
+      #
+      # This runs after the deploy because a secret cannot be attached to a
+      # Worker that does not exist yet. On the very first run the Worker is
+      # therefore live for a few seconds without credentials, during which it
+      # renders its "not configured" notice rather than failing.
+      - name: Sync runtime secrets
+        run: |
+          printf '%s' "${{ secrets.SUPABASE_URL }}" | npx wrangler secret put SUPABASE_URL
+          printf '%s' "${{ secrets.SUPABASE_KEY }}" | npx wrangler secret put SUPABASE_KEY
+
+      - name: Report the public address
+        run: npx wrangler deployments list --name 10x-study-planner || true
