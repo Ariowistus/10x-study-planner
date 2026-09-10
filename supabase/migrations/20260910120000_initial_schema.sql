@@ -120,6 +120,27 @@ create policy sessions_owner_access on public.sessions
   with check (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------------------
+-- Data API privileges
+--
+-- Row level security decides which rows a learner may touch, but PostgREST
+-- still needs table-level privileges before any policy is consulted. A project
+-- created with "automatically expose new tables" turned off grants none, and
+-- every query then fails with a permission error that looks nothing like a
+-- policy problem. Granting explicitly here keeps the migration correct under
+-- either project setting.
+--
+-- Note what is absent: `anon` receives no table privileges at all. An
+-- unauthenticated caller cannot reach learner data even before policies apply.
+-- ---------------------------------------------------------------------------
+
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete on public.topics       to authenticated;
+grant select, insert, update, delete on public.availability to authenticated;
+grant select, insert, update, delete on public.plans        to authenticated;
+grant select, insert, update, delete on public.sessions     to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- set_session_status
 --
 -- Changing a session's status also moves the parent topic's progress. Doing
@@ -179,3 +200,8 @@ begin
   return v_session;
 end;
 $$;
+
+-- Only signed-in learners may invoke the progress function. Postgres grants
+-- EXECUTE to PUBLIC by default, which would let an anonymous caller reach it.
+revoke execute on function public.set_session_status(uuid, text) from public;
+grant execute on function public.set_session_status(uuid, text) to authenticated;
