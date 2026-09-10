@@ -1,0 +1,161 @@
+import { addDays, startOfWeek, weekdayIndex } from "@/domain/date";
+import { generatePlan, remainingMinutes } from "@/domain/scheduler";
+import type { Availability, IsoDate, SessionStatus, Topic } from "@/domain/types";
+import {
+  deletePlannedSessionsInRange,
+  getAvailability,
+  insertSessions,
+  listSessionsInRange,
+  listTopics,
+  toTopic,
+  upsertPlan,
+  type Db,
+  type SessionRow,
+} from "@/lib/repository";
+
+/**
+ * Everything that turns stored state into a week of study sessions.
+ *
+ * The scheduling decision itself lives in `src/domain/scheduler.ts` and is
+ * tested there. This module only supplies it with data and persists the result.
+ */
+
+/** Today, from the server clock, as a calendar date. */
+export function todayIso(now: Date = new Date()): IsoDate {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function currentWeekStart(now: Date = new Date()): IsoDate {
+  return startOfWeek(todayIso(now));
+}
+
+export interface SessionView {
+  id: string;
+  topicId: string;
+  topicTitle: string;
+  date: IsoDate;
+  minutes: number;
+  status: SessionStatus;
+}
+
+export interface TopicProgress {
+  topic: Topic;
+  remainingMinutes: number;
+  percentComplete: number;
+}
+
+export interface WeekView {
+  weekStart: IsoDate;
+  weekEnd: IsoDate;
+  days: { date: IsoDate; sessions: SessionView[]; totalMinutes: number; availableMinutes: number }[];
+  topics: TopicProgress[];
+  availability: Availability;
+  plannedMinutes: number;
+  completedMinutes: number;
+  hasPlan: boolean;
+}
+
+/**
+ * Rebuilds a week from current state.
+ *
+ * Sessions the learner already acted on — done or skipped — are kept as
+ * history, and the capacity they occupy is removed from the day before
+ * replanning, so a regeneration never double-books an evening that has already
+ * been spent.
+ */
+export async function regenerateWeek(db: Db, userId: string, weekStart: IsoDate) {
+  const weekEnd = addDays(weekStart, 6);
+
+  const [topicRows, availability, existing] = await Promise.all([
+    listTopics(db),
+    getAvailability(db),
+    listSessionsInRange(db, weekStart, weekEnd),
+  ]);
+
+  const settled = existing.filter((session) => session.status !== "planned");
+
+  const adjusted: number[] = [...availability];
+  for (const session of settled) {
+    const index = weekdayIndex(session.scheduled_date);
+    adjusted[index] = Math.max(0, adjusted[index] - session.minutes);
+  }
+
+  await deletePlannedSessionsInRange(db, weekStart, weekEnd);
+
+  const plan = generatePlan({
+    weekStart,
+    topics: topicRows.map(toTopic),
+    availability: adjusted as unknown as Availability,
+  });
+
+  const planId = await upsertPlan(db, userId, weekStart);
+  await insertSessions(db, userId, planId, plan.sessions);
+
+  return plan;
+}
+
+/** Assembles everything the dashboard renders for one week. */
+export async function loadWeekView(db: Db, weekStart: IsoDate): Promise<WeekView> {
+  const weekEnd = addDays(weekStart, 6);
+
+  const [topicRows, availability, sessionRows] = await Promise.all([
+    listTopics(db),
+    getAvailability(db),
+    listSessionsInRange(db, weekStart, weekEnd),
+  ]);
+
+  const topics = topicRows.map(toTopic);
+  const titleById = new Map(topics.map((topic) => [topic.id, topic.title]));
+
+  const views: SessionView[] = sessionRows.map((row: SessionRow) => ({
+    id: row.id,
+    topicId: row.topic_id,
+    topicTitle: titleById.get(row.topic_id) ?? "Removed topic",
+    date: row.scheduled_date,
+    minutes: row.minutes,
+    status: row.status,
+  }));
+
+  const days = Array.from({ length: 7 }, (_, offset) => {
+    const date = addDays(weekStart, offset);
+    const sessions = views
+      .filter((session) => session.date === date)
+      .sort((a, b) => a.topicTitle.localeCompare(b.topicTitle));
+
+    return {
+      date,
+      sessions,
+      totalMinutes: sessions.reduce((sum, session) => sum + session.minutes, 0),
+      availableMinutes: availability[weekdayIndex(date)] ?? 0,
+    };
+  });
+
+  const progress: TopicProgress[] = topics
+    .filter((topic) => topic.status !== "archived")
+    .map((topic) => ({
+      topic,
+      remainingMinutes: remainingMinutes(topic),
+      percentComplete:
+        topic.estimatedMinutes === 0
+          ? 0
+          : Math.min(100, Math.round((topic.completedMinutes / topic.estimatedMinutes) * 100)),
+    }));
+
+  return {
+    weekStart,
+    weekEnd,
+    days,
+    topics: progress,
+    availability,
+    plannedMinutes: views
+      .filter((session) => session.status === "planned")
+      .reduce((sum, session) => sum + session.minutes, 0),
+    completedMinutes: views
+      .filter((session) => session.status === "done")
+      .reduce((sum, session) => sum + session.minutes, 0),
+    hasPlan: views.length > 0,
+  };
+}

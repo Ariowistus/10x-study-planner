@@ -1,0 +1,81 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  active: "dashboard" | "topics";
+}
+
+const { title, active } = Astro.props;
+const { user } = Astro.locals;
+
+const ok = Astro.url.searchParams.get("ok");
+const error = Astro.url.searchParams.get("error");
+
+const navLink = "rounded-md px-3 py-1.5 text-sm font-medium transition-colors";
+const navActive = "bg-slate-900 text-white";
+const navIdle = "text-slate-600 hover:bg-slate-200 hover:text-slate-900";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>{title} · 10x Study Planner</title>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+    <header class="border-b border-slate-200 bg-white">
+      <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <a href="/dashboard" class="text-base font-semibold tracking-tight">10x Study Planner</a>
+
+        <nav class="flex items-center gap-1" aria-label="Main">
+          <a href="/dashboard" class:list={`${navLink} ${active === "dashboard" ? navActive : navIdle}`}>Plan</a>
+          <a href="/topics" class:list={`${navLink} ${active === "topics" ? navActive : navIdle}`}>Topics</a>
+        </nav>
+
+        <div class="flex items-center gap-3 text-sm text-slate-500">
+          <span data-testid="current-user">{user?.email}</span>
+          <form method="POST" action="/api/auth/signout">
+            <button
+              type="submit"
+              class="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 py-8">
+      {
+        ok && (
+          <p
+            data-testid="flash-ok"
+            role="status"
+            class="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          >
+            {ok}
+          </p>
+        )
+      }
+      {
+        error && (
+          <p
+            data-testid="flash-error"
+            role="alert"
+            class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            {error}
+          </p>
+        )
+      }
+
+      <h1 class="mb-6 text-2xl font-semibold tracking-tight">{title}</h1>
+
+      <slot />
+    </main>
+  </body>
+</html>
