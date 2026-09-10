@@ -25,6 +25,7 @@ const deployTarget = process.env.DEPLOY_TARGET ?? "node";
 
 // https://astro.build/config
 export default defineConfig({
+  site: "https://10x-study-planner.ariowistus.workers.dev",
   output: "server",
   integrations: [react(), sitemap()],
   vite: {
