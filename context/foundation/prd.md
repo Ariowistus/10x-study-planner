@@ -226,3 +226,16 @@ direct comparison with the authenticated user.
 3. A topic whose deadline has already passed is treated as maximally urgent
    rather than being archived; the right default is unclear until the app is
    used against a real exam date.
+4. Urgency compares required daily pace, which treats a deadline as a slope
+   rather than a cliff. A topic due tomorrow with fifteen minutes left can
+   therefore lose its last block to a much larger topic due in a month. It is
+   defensible — the small topic genuinely needs less time per day — but a
+   learner may reasonably expect tomorrow's deadline to be cleared first.
+   Changing it means scoring the risk of missing a deadline, not patching the
+   allocation loop.
+5. Email confirmation is switched off in the hosted project. It keeps the
+   sign-up flow usable for demonstration and keeps the end-to-end suite off the
+   provider's mail rate limit, at the cost of allowing registration with an
+   address nobody owns. Acceptable while the only data an account holds is its
+   own study list; it would not be acceptable if the product ever sent mail or
+   held anything of value.

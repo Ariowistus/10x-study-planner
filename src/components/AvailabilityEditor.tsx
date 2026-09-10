@@ -45,7 +45,7 @@ export default function AvailabilityEditor({ initial }: Props) {
               name={`day-${index}`}
               min={0}
               max={1440}
-              step={5}
+              step={1}
               value={Number.isFinite(minutes[index]) ? minutes[index] : 0}
               onChange={(event) => {
                 update(index, event.target.value);

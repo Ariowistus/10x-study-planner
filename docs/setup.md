@@ -45,12 +45,22 @@ The application cannot do anything without this. Do it first.
 
    `npm run dev` should now let you register an account and reach the dashboard.
 
-### One setting worth changing while you are there
+### Turn off email confirmation
 
-Under **Authentication → Sign In / Providers → Email**, decide whether to
-require email confirmation. Leaving it on is more realistic; turning it off
-makes demonstrating the application to someone else considerably less awkward,
-because a fresh account works immediately.
+Under **Authentication → Sign In / Providers**, in the **User Signups** block,
+switch **Confirm email** off and save.
+
+This is not optional in practice. With it on, every sign-up tries to send a
+message through the provider's shared mail server, which allows only a couple of
+emails per hour on the free plan. The end-to-end suite creates several accounts
+in a single run and hits `email rate limit exceeded` immediately. It also makes
+showing the application to anyone else awkward, because a fresh account cannot
+be used until someone opens an inbox.
+
+The trade-off, stated plainly: anyone can register with an address they do not
+own. That is acceptable here because an account holds nothing but its own study
+list, and the application never sends mail. It would not be acceptable for a
+product that did either.
 
 ---
 
