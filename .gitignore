@@ -7,6 +7,15 @@ test-results/
 playwright-report/
 .playwright/
 
+# Course skill packs. These are paid 10xDevs material delivered through an
+# authenticated CLI, so they are not redistributed from this public repository.
+# Anyone with course access restores them with:
+#   npx @przeprogramowani/10x-cli@latest auth
+#   npx @przeprogramowani/10x-cli@latest get m1l1   # ... through m3l5
+.claude/skills/
+.claude/prompts/
+.claude/.10x-cli-manifest.json
+
 # generated types
 .astro/
 
