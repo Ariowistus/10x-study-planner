@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { Button } from "@/components/ui/button";
 
 interface SubmitButtonProps {
   pendingText: string;
@@ -12,22 +11,22 @@ export function SubmitButton({ pendingText, icon, children }: SubmitButtonProps)
   const { pending } = useFormStatus();
 
   return (
-    <Button
+    <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-lg bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-500"
+      className="bg-brand text-brand-contrast hover:bg-brand-hover flex w-full items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-sm font-medium transition-colors active:translate-y-px disabled:opacity-60"
     >
       {pending ? (
-        <span className="flex items-center gap-2">
-          <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        <>
+          <span className="size-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
           {pendingText}
-        </span>
+        </>
       ) : (
-        <span className="flex items-center gap-2">
+        <>
           {icon}
           {children}
-        </span>
+        </>
       )}
-    </Button>
+    </button>
   );
 }

@@ -1,36 +1,22 @@
 ---
-import Layout from "@/layouts/Layout.astro";
+import AuthLayout from "@/layouts/AuthLayout.astro";
 
-const isAutoConfirmed = import.meta.env.DEV;
+export const prerender = false;
 
-const content = isAutoConfirmed
-  ? {
-      emoji: "✅",
-      heading: "Registration successful",
-      description: "Your account has been created. You can now sign in.",
-      linkText: "Go to sign in",
-    }
-  : {
-      emoji: "📧",
-      heading: "Check your email",
-      description: "We've sent a confirmation link to your email address. Click it to activate your account.",
-      linkText: "Back to sign in",
-    };
+// Email confirmation is switched off for this project, so an account works the
+// moment it is created. See the decision and what it costs in
+// context/foundation/prd.md under open questions.
 ---
 
-<Layout title={content.heading}>
-  <div class="bg-cosmic flex min-h-screen items-center justify-center p-4">
-    <div
-      class="w-full max-w-sm rounded-2xl border border-white/10 bg-white/10 p-8 text-center text-white backdrop-blur-xl"
-    >
-      <div class="mb-4 text-5xl">{content.emoji}</div>
-      <h1 class="mb-3 bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-2xl font-bold text-transparent">
-        {content.heading}
-      </h1>
-      <p class="mb-6 text-blue-100/80">{content.description}</p>
-      <a href="/auth/signin" class="text-sm text-purple-300 hover:underline">
-        {content.linkText}
-      </a>
-    </div>
+<AuthLayout title="Account created">
+  <div class="border-brand-line bg-brand-soft rounded-[10px] border p-5">
+    <p class="text-ink text-[15px]">Your account is ready. Sign in and set up your first week.</p>
   </div>
-</Layout>
+
+  <a
+    href="/auth/signin"
+    class="bg-brand text-brand-contrast hover:bg-brand-hover mt-6 inline-flex items-center rounded-[10px] px-5 py-2.5 text-sm font-medium transition-colors active:translate-y-px"
+  >
+    Go to sign in
+  </a>
+</AuthLayout>

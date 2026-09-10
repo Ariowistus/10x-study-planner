@@ -4,6 +4,28 @@ import "../styles/global.css";
 export const prerender = false;
 
 const { user } = Astro.locals;
+
+/**
+ * Sample week shown below the hero.
+ *
+ * This is not a mock image and not a fake screenshot: it is the same day-card
+ * vocabulary the dashboard renders, with example data, so what a visitor sees
+ * here is what they get after signing in.
+ */
+const sampleWeek = [
+  { day: "Mon", date: "13", available: 60, sessions: [{ title: "Routing protocols", minutes: 60, done: true }] },
+  { day: "Tue", date: "14", available: 60, sessions: [{ title: "Routing protocols", minutes: 45, done: false }] },
+  { day: "Wed", date: "15", available: 0, sessions: [] },
+  { day: "Thu", date: "16", available: 90, sessions: [{ title: "Subnetting drills", minutes: 90, done: false }] },
+  { day: "Fri", date: "17", available: 0, sessions: [] },
+  { day: "Sat", date: "18", available: 120, sessions: [{ title: "Access control lists", minutes: 120, done: false }] },
+  { day: "Sun", date: "19", available: 45, sessions: [{ title: "Subnetting drills", minutes: 45, done: false }] },
+];
+
+const primaryButton =
+  "inline-flex items-center rounded-[10px] bg-brand px-5 py-2.5 text-sm font-medium text-brand-contrast transition-colors hover:bg-brand-hover active:translate-y-px";
+const secondaryButton =
+  "inline-flex items-center rounded-[10px] border border-line px-5 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink active:translate-y-px";
 ---
 
 <!doctype html>
@@ -15,81 +37,199 @@ const { user } = Astro.locals;
     <title>10x Study Planner</title>
     <meta
       name="description"
-      content="Turns a topic list, a deadline and a weekly time budget into a dated study plan, and keeps it honest as life interferes."
+      content="Turns a topic list, a deadline and a weekly time budget into a dated study plan, and rebuilds it from what you actually did."
     />
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-    <main class="mx-auto max-w-3xl px-4 py-16 sm:py-24">
-      <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">10x Study Planner</h1>
-
-      <p class="mt-4 text-lg text-slate-600">
-        You know what you have to cover before the exam. What you decide badly, at the end of a long day, is
-        <em>when</em>. This works that out for you.
-      </p>
-
-      <section class="mt-10 rounded-lg border border-slate-200 bg-white p-6">
-        <h2 class="text-sm font-semibold tracking-wide text-slate-500 uppercase">How it works</h2>
-        <ol class="mt-4 space-y-3 text-slate-700">
-          <li>
-            <span class="font-medium text-slate-900">1.</span> List your topics with an estimate, a priority and an optional
-            deadline.
-          </li>
-          <li>
-            <span class="font-medium text-slate-900">2.</span> Say how many minutes you really have on each weekday. Zero
-            is allowed, and respected.
-          </li>
-          <li>
-            <span class="font-medium text-slate-900">3.</span> Generate the week. Each evening gets filled, never past what
-            you declared.
-          </li>
-          <li>
-            <span class="font-medium text-slate-900">4.</span> Mark sessions done or skipped. The next plan is built from
-            what actually happened.
-          </li>
-        </ol>
-      </section>
-
-      <section class="mt-6 rounded-lg border border-slate-200 bg-white p-6">
-        <h2 class="text-sm font-semibold tracking-wide text-slate-500 uppercase">How it decides</h2>
-        <p class="mt-3 text-slate-700">
-          Each topic is scored by the daily pace it would need to finish on time, weighted by how much it matters. A
-          deadline that is close therefore beats a topic that is merely important, and because urgency falls as work
-          gets done, topics under similar pressure take turns instead of one of them swallowing the week.
-        </p>
-      </section>
-
-      <div class="mt-10 flex flex-wrap gap-3">
+  <body class="bg-surface text-ink min-h-[100dvh]">
+    <header class="border-line border-b">
+      <div class="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
+        <span class="text-[15px] font-semibold tracking-tight">Study Planner</span>
         {
           user ? (
-            <a
-              href="/dashboard"
-              class="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-            >
+            <a href="/dashboard" class="text-brand text-sm font-medium underline underline-offset-4">
               Open this week
             </a>
           ) : (
-            <>
-              <a
-                href="/auth/signup"
-                class="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-              >
-                Create an account
-              </a>
-              <a
-                href="/auth/signin"
-                class="rounded-md border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-              >
-                Sign in
-              </a>
-            </>
+            <a href="/auth/signin" class="text-ink-muted hover:text-ink text-sm font-medium transition-colors">
+              Sign in
+            </a>
           )
         }
       </div>
+    </header>
 
-      <footer class="mt-16 border-t border-slate-200 pt-6 text-sm text-slate-500">
-        Course project for 10xDevs 3.0. Source and design notes on
-        <a href="https://github.com/Ariowistus/10x-study-planner" class="underline hover:text-slate-900">GitHub</a>.
-      </footer>
+    <main>
+      <!-- Hero: the message is the design, so it carries no decorative asset. -->
+      <section class="mx-auto max-w-5xl px-4 pt-16 pb-14 sm:pt-24">
+        <div class="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div class="lg:col-span-8">
+            <h1 class="text-[34px] leading-[1.08] font-semibold tracking-tight sm:text-[44px] lg:text-5xl">
+              You know what to study.
+              <span class="text-ink-muted block">The hard part is when.</span>
+            </h1>
+
+            <p class="text-ink-muted mt-6 max-w-[52ch] text-lg">
+              Give it your topics, your deadline and the evenings you really have. It returns a dated week and rebuilds
+              it from what you actually did.
+            </p>
+
+            <div class="mt-9 flex flex-wrap gap-3">
+              {
+                user ? (
+                  <a href="/dashboard" class:list={primaryButton}>
+                    Open this week
+                  </a>
+                ) : (
+                  <>
+                    <a href="/auth/signup" class:list={primaryButton}>
+                      Create an account
+                    </a>
+                    <a href="/auth/signin" class:list={secondaryButton}>
+                      Sign in
+                    </a>
+                  </>
+                )
+              }
+            </div>
+          </div>
+
+          <div class="lg:col-span-4 lg:pt-3">
+            <dl class="border-line grid grid-cols-3 gap-6 border-t pt-6 lg:grid-cols-1 lg:gap-7">
+              <div>
+                <dt class="text-ink-faint text-[13px]">Respects</dt>
+                <dd class="mt-1 text-[15px] leading-snug">The minutes you declared, never more</dd>
+              </div>
+              <div>
+                <dt class="text-ink-faint text-[13px]">Orders by</dt>
+                <dd class="mt-1 text-[15px] leading-snug">How soon a topic is actually due</dd>
+              </div>
+              <div>
+                <dt class="text-ink-faint text-[13px]">Rebuilds from</dt>
+                <dd class="mt-1 text-[15px] leading-snug">The evenings you kept, not the plan</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- A real render of the day cards the dashboard uses, with example data. -->
+      <section class="border-line bg-sunken border-y">
+        <div class="mx-auto max-w-5xl px-4 py-14">
+          <div class="mb-7 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 class="text-2xl font-semibold tracking-tight">A week, as it comes out</h2>
+            <p class="tnum text-ink-faint text-sm">Example data, six hours across five evenings</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+            {
+              sampleWeek.map((day) => {
+                const used = day.sessions.reduce((sum, session) => sum + session.minutes, 0);
+                const percent = day.available === 0 ? 0 : Math.min(100, Math.round((used / day.available) * 100));
+
+                return (
+                  <article class="border-line bg-raised flex flex-col rounded-[10px] border p-3">
+                    <header class="mb-3 flex items-baseline justify-between">
+                      <h3 class="text-[13px] font-semibold tracking-tight">{day.day}</h3>
+                      <span class="tnum text-ink-faint text-[11px]">{day.date}</span>
+                    </header>
+
+                    <div class="mb-3">
+                      <div class="bg-sunken h-1 w-full overflow-hidden rounded-full">
+                        <div class="bg-brand h-full rounded-full" style={`width: ${percent}%`} />
+                      </div>
+                      <p class="tnum text-ink-faint mt-1.5 text-[11px]">{`${used} / ${day.available} min`}</p>
+                    </div>
+
+                    {day.sessions.length === 0 ? (
+                      <p class="text-ink-faint text-[12px]">Kept free</p>
+                    ) : (
+                      <ul class="flex flex-col gap-2">
+                        {day.sessions.map((session) => (
+                          <li>
+                            <p class="text-[13px] leading-snug font-medium">{session.title}</p>
+                            <p class="tnum text-ink-faint mt-0.5 text-[11px]">{session.minutes} min</p>
+                            <span
+                              class:list={[
+                                "mt-1.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                session.done
+                                  ? "border-brand-line bg-brand-soft text-brand border"
+                                  : "border-line text-ink-faint border",
+                              ]}
+                            >
+                              {session.done ? "done" : "planned"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                );
+              })
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto max-w-5xl px-4 py-16">
+        <div class="grid gap-10 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h2 class="text-2xl font-semibold tracking-tight">How it decides</h2>
+            <p class="text-ink-muted mt-4 text-[17px] leading-relaxed">
+              Every topic is scored by the daily pace it would need to finish on time, weighted by how much it matters.
+              A deadline that is close therefore beats a topic that is merely important. Because that score falls as
+              work gets done, topics under similar pressure take turns instead of one of them swallowing the week.
+            </p>
+          </div>
+
+          <ul class="divide-line border-line flex flex-col divide-y border-t">
+            <li class="py-4">
+              <p class="font-medium">A day is never overfilled</p>
+              <p class="text-ink-muted mt-1 text-[15px]">
+                The minutes on any evening never exceed what you said you had.
+              </p>
+            </li>
+            <li class="py-4">
+              <p class="font-medium">Big topics get split</p>
+              <p class="text-ink-muted mt-1 text-[15px]">
+                Something larger than one evening is spread across several, not truncated.
+              </p>
+            </li>
+            <li class="py-4">
+              <p class="font-medium">A missed evening is not a debt</p>
+              <p class="text-ink-muted mt-1 text-[15px]">
+                Skip a session and the work returns to the pool for the next plan.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      {
+        !user && (
+          <section class="border-line border-t">
+            <div class="mx-auto max-w-5xl px-4 py-16">
+              <h2 class="max-w-[24ch] text-2xl font-semibold tracking-tight">
+                Start with three topics and the evenings you actually have.
+              </h2>
+              <a href="/auth/signup" class:list={["mt-7", primaryButton]}>
+                Create an account
+              </a>
+            </div>
+          </section>
+        )
+      }
     </main>
+
+    <footer class="border-line border-t">
+      <div class="text-ink-faint mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm">
+        <span>Course project for 10xDevs 3.0</span>
+        <a
+          href="https://github.com/Ariowistus/10x-study-planner"
+          class="hover:text-ink underline underline-offset-4 transition-colors"
+        >
+          Source and design notes
+        </a>
+      </div>
+    </footer>
   </body>
 </html>

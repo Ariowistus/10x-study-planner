@@ -4,8 +4,7 @@ import AvailabilityEditor from "@/components/AvailabilityEditor";
 import { createClient } from "@/lib/supabase";
 import { getAvailability, listTopics, toTopic } from "@/lib/repository";
 import { remainingMinutes } from "@/domain/scheduler";
-import type { Topic } from "@/domain/types";
-import type { Availability } from "@/domain/types";
+import type { Availability, Topic } from "@/domain/types";
 
 export const prerender = false;
 
@@ -31,46 +30,51 @@ if (db) {
 }
 
 const priorities = [1, 2, 3, 4, 5];
-const inputClass =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none";
+
+const field =
+  "w-full rounded-[10px] border border-line bg-raised px-3 py-2 text-sm text-ink transition-colors focus:border-brand focus:outline-none";
+const label = "text-[11px] font-medium tracking-wide text-ink-faint uppercase";
+const primaryButton =
+  "rounded-[10px] bg-brand px-4 py-2 text-sm font-medium text-brand-contrast transition-colors hover:bg-brand-hover active:translate-y-px";
 ---
 
-<AppLayout title="Topics" active="topics">
+<AppLayout title="Topics" subtitle="What you have to cover, and how much time you actually have." active="topics">
   {
     loadError && (
-      <p class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{loadError}</p>
+      <p class="border-danger-line bg-danger-soft text-danger mb-8 rounded-[10px] border px-4 py-3 text-sm">
+        {loadError}
+      </p>
     )
   }
 
-  <section class="mb-8 rounded-lg border border-slate-200 bg-white p-6">
-    <h2 class="mb-1 text-lg font-semibold">Weekly availability</h2>
-    <p class="mb-4 text-sm text-slate-600">
-      Minutes you can realistically study on each day. Zero means the planner leaves that day alone.
+  <section class="border-line mb-12 border-b pb-10">
+    <h2 class="text-lg font-semibold tracking-tight">Your week</h2>
+    <p class="text-ink-muted mt-1 mb-5 text-sm">
+      Minutes you can realistically study on each day. Be honest rather than optimistic.
     </p>
 
     <form method="POST" action="/api/availability">
       <AvailabilityEditor client:load initial={[...availability]} />
-      <button
-        type="submit"
-        data-testid="save-availability"
-        class="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-      >
+      <button type="submit" data-testid="save-availability" class:list={["mt-5", primaryButton]}>
         Save availability
       </button>
     </form>
   </section>
 
-  <section class="mb-8 rounded-lg border border-slate-200 bg-white p-6">
-    <h2 class="mb-4 text-lg font-semibold">Add a topic</h2>
+  <section class="border-line mb-12 border-b pb-10">
+    <h2 class="text-lg font-semibold tracking-tight">Add a topic</h2>
+    <p class="text-ink-muted mt-1 mb-5 text-sm">
+      An estimate you believe, a priority you mean, and a deadline only if there really is one.
+    </p>
 
-    <form method="POST" action="/api/topics" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <label class="flex flex-col gap-1 text-sm sm:col-span-2">
-        <span class="font-medium text-slate-700">Title</span>
-        <input type="text" name="title" required maxlength="200" data-testid="topic-title" class:list={inputClass} />
+    <form method="POST" action="/api/topics" class="grid gap-4 sm:grid-cols-6">
+      <label class="flex flex-col gap-1.5 sm:col-span-3">
+        <span class:list={label}>Title</span>
+        <input type="text" name="title" required maxlength="200" data-testid="topic-title" class:list={field} />
       </label>
 
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium text-slate-700">Estimate (minutes)</span>
+      <label class="flex flex-col gap-1.5 sm:col-span-1">
+        <span class:list={label}>Minutes</span>
         <input
           type="number"
           name="estimatedMinutes"
@@ -80,13 +84,13 @@ const inputClass =
           step="1"
           value="120"
           data-testid="topic-estimate"
-          class:list={inputClass}
+          class:list={["tnum", field]}
         />
       </label>
 
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium text-slate-700">Priority</span>
-        <select name="priority" data-testid="topic-priority" class:list={inputClass}>
+      <label class="flex flex-col gap-1.5 sm:col-span-1">
+        <span class:list={label}>Priority</span>
+        <select name="priority" data-testid="topic-priority" class:list={field}>
           {
             priorities.map((value) => (
               <option value={value} selected={value === 3}>
@@ -97,97 +101,116 @@ const inputClass =
         </select>
       </label>
 
-      <label class="flex flex-col gap-1 text-sm sm:col-span-2">
-        <span class="font-medium text-slate-700">Deadline (optional)</span>
-        <input type="date" name="deadline" data-testid="topic-deadline" class:list={inputClass} />
+      <label class="flex flex-col gap-1.5 sm:col-span-1">
+        <span class:list={label}>Deadline</span>
+        <input type="date" name="deadline" data-testid="topic-deadline" class:list={field} />
       </label>
 
-      <div class="flex items-end sm:col-span-2">
-        <button
-          type="submit"
-          data-testid="add-topic"
-          class="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-        >
-          Add topic
-        </button>
+      <div class="sm:col-span-6">
+        <button type="submit" data-testid="add-topic" class:list={primaryButton}>Add topic</button>
       </div>
     </form>
   </section>
 
-  <section class="rounded-lg border border-slate-200 bg-white p-6">
-    <h2 class="mb-4 text-lg font-semibold">Your topics</h2>
+  <section>
+    <h2 class="mb-5 text-lg font-semibold tracking-tight">Your topics</h2>
 
     {
       topics.length === 0 ? (
-        <p data-testid="topics-empty" class="text-sm text-slate-600">
-          No topics yet. Add the first one above, then generate a plan.
+        <p
+          data-testid="topics-empty"
+          class="border-line-strong bg-raised text-ink-muted rounded-[10px] border border-dashed px-5 py-8 text-center text-[15px]"
+        >
+          Nothing here yet. Add the first topic above, then generate a plan.
         </p>
       ) : (
-        <ul class="divide-y divide-slate-200" data-testid="topic-list">
-          {topics.map((topic) => (
-            <li class="py-4" data-testid="topic-item" data-topic-title={topic.title}>
-              <form method="POST" action={`/api/topics/${topic.id}`} class="grid gap-3 sm:grid-cols-12 sm:items-end">
-                <label class="flex flex-col gap-1 text-sm sm:col-span-4">
-                  <span class="font-medium text-slate-700">Title</span>
-                  <input type="text" name="title" value={topic.title} maxlength="200" class:list={inputClass} />
-                </label>
+        <ul data-testid="topic-list" class="flex flex-col gap-4">
+          {topics.map((topic) => {
+            const left = remainingMinutes(topic);
+            const percent =
+              topic.estimatedMinutes === 0
+                ? 0
+                : Math.min(100, Math.round((topic.completedMinutes / topic.estimatedMinutes) * 100));
 
-                <label class="flex flex-col gap-1 text-sm sm:col-span-2">
-                  <span class="font-medium text-slate-700">Estimate</span>
-                  <input
-                    type="number"
-                    name="estimatedMinutes"
-                    value={topic.estimatedMinutes}
-                    min="1"
-                    max="100000"
-                    step="1"
-                    class:list={inputClass}
-                  />
-                </label>
+            return (
+              <li
+                data-testid="topic-item"
+                data-topic-title={topic.title}
+                class="border-line bg-raised rounded-[10px] border p-4"
+              >
+                <form method="POST" action={`/api/topics/${topic.id}`} class="grid gap-3 sm:grid-cols-6 sm:items-end">
+                  <label class="flex flex-col gap-1.5 sm:col-span-2">
+                    <span class:list={label}>Title</span>
+                    <input type="text" name="title" value={topic.title} maxlength="200" class:list={field} />
+                  </label>
 
-                <label class="flex flex-col gap-1 text-sm sm:col-span-2">
-                  <span class="font-medium text-slate-700">Priority</span>
-                  <select name="priority" class:list={inputClass}>
-                    {priorities.map((value) => (
-                      <option value={value} selected={value === topic.priority}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <label class="flex flex-col gap-1.5 sm:col-span-1">
+                    <span class:list={label}>Minutes</span>
+                    <input
+                      type="number"
+                      name="estimatedMinutes"
+                      value={topic.estimatedMinutes}
+                      min="1"
+                      max="100000"
+                      step="1"
+                      class:list={["tnum", field]}
+                    />
+                  </label>
 
-                <label class="flex flex-col gap-1 text-sm sm:col-span-2">
-                  <span class="font-medium text-slate-700">Deadline</span>
-                  <input type="date" name="deadline" value={topic.deadline ?? ""} class:list={inputClass} />
-                </label>
+                  <label class="flex flex-col gap-1.5 sm:col-span-1">
+                    <span class:list={label}>Priority</span>
+                    <select name="priority" class:list={field}>
+                      {priorities.map((value) => (
+                        <option value={value} selected={value === topic.priority}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <div class="flex gap-2 sm:col-span-2">
-                  <button
-                    type="submit"
-                    name="_action"
-                    value="update"
-                    class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="submit"
-                    name="_action"
-                    value="delete"
-                    data-testid="delete-topic"
-                    class="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50"
-                  >
-                    Delete
-                  </button>
+                  <label class="flex flex-col gap-1.5 sm:col-span-1">
+                    <span class:list={label}>Deadline</span>
+                    <input type="date" name="deadline" value={topic.deadline ?? ""} class:list={field} />
+                  </label>
+
+                  <div class="flex gap-2 sm:col-span-1">
+                    <button
+                      type="submit"
+                      name="_action"
+                      value="update"
+                      class="border-line text-ink-muted hover:border-line-strong hover:text-ink rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors active:translate-y-px"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="submit"
+                      name="_action"
+                      value="delete"
+                      data-testid="delete-topic"
+                      class="border-danger-line text-danger hover:bg-danger-soft rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors active:translate-y-px"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </form>
+
+                <div class="mt-4 flex items-center gap-3">
+                  <div class="bg-sunken h-1 flex-1 overflow-hidden rounded-full">
+                    <div class="bg-brand h-full rounded-full" style={`width: ${percent}%`} />
+                  </div>
+                  <p class="tnum text-ink-faint text-[12px] whitespace-nowrap">
+                    {topic.completedMinutes}
+                    {" done, "}
+                    <span data-testid="topic-remaining" class="text-ink-muted font-medium">
+                      {left}
+                    </span>
+                    {" left"}
+                    {topic.status !== "active" && `, ${topic.status}`}
+                  </p>
                 </div>
-              </form>
-
-              <p class="mt-2 text-xs text-slate-500">
-                {topic.completedMinutes} of {topic.estimatedMinutes} minutes done ·{" "}
-                <span data-testid="topic-remaining">{remainingMinutes(topic)}</span> remaining · status {topic.status}
-              </p>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )
     }

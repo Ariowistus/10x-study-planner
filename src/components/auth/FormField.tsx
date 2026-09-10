@@ -3,7 +3,7 @@ import { CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const inputBase =
-  "w-full rounded-lg bg-white/10 border px-3 py-2 pl-10 text-white placeholder-white/40 focus:outline-none focus:ring-2 transition-colors";
+  "w-full rounded-[10px] border bg-raised px-3 py-2.5 pl-10 text-sm text-ink placeholder-ink-faint transition-colors focus:outline-none";
 
 interface FormFieldProps {
   id: string;
@@ -34,11 +34,11 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm text-blue-100/80">
+      <label htmlFor={id} className="text-ink-faint mb-1.5 block text-[11px] font-medium tracking-wide uppercase">
         {label}
       </label>
       <div className="relative">
-        <span className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/40">{icon}</span>
+        <span className="text-ink-faint absolute top-1/2 left-3 size-4 -translate-y-1/2">{icon}</span>
         <input
           id={id}
           name={name ?? id}
@@ -48,16 +48,14 @@ export function FormField({
             onChange(e.target.value);
           }}
           placeholder={placeholder}
-          className={cn(
-            inputBase,
-            error ? "border-red-400/60 focus:ring-red-400" : "border-white/20 focus:ring-purple-400",
-          )}
+          aria-invalid={error ? true : undefined}
+          className={cn(inputBase, error ? "border-danger focus:border-danger" : "border-line focus:border-brand")}
         />
         {endContent}
       </div>
       {error ? (
-        <p className="mt-1 flex items-center gap-1 text-xs text-red-300">
-          <CircleAlert className="size-3" />
+        <p className="text-danger mt-1.5 flex items-center gap-1 text-xs">
+          <CircleAlert className="size-3 shrink-0" />
           {error}
         </p>
       ) : (

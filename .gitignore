@@ -6,6 +6,7 @@ coverage/
 test-results/
 playwright-report/
 .playwright/
+shots/
 
 # Course skill packs. These are paid 10xDevs material delivered through an
 # authenticated CLI, so they are not redistributed from this public repository.

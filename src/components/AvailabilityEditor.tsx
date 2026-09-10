@@ -35,34 +35,42 @@ export default function AvailabilityEditor({ initial }: Props) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-        {WEEKDAYS.map((day, index) => (
-          <label key={day} className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-slate-700">{day.slice(0, 3)}</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              name={`day-${index}`}
-              min={0}
-              max={1440}
-              step={1}
-              value={Number.isFinite(minutes[index]) ? minutes[index] : 0}
-              onChange={(event) => {
-                update(index, event.target.value);
-              }}
-              aria-label={`${day} minutes`}
-              data-testid={`availability-${index}`}
-              className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-            />
-          </label>
-        ))}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        {WEEKDAYS.map((day, index) => {
+          const value = Number.isFinite(minutes[index]) ? minutes[index] : 0;
+          const free = value === 0;
+
+          return (
+            <label key={day} className="flex flex-col gap-1.5">
+              <span className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">{day.slice(0, 3)}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                name={`day-${index}`}
+                min={0}
+                max={1440}
+                step={1}
+                value={value}
+                onChange={(event) => {
+                  update(index, event.target.value);
+                }}
+                aria-label={`${day} minutes`}
+                data-testid={`availability-${index}`}
+                className={`tnum focus:border-brand w-full rounded-[10px] border px-2.5 py-2 text-sm transition-colors focus:outline-none ${
+                  free ? "border-line bg-sunken text-ink-faint" : "border-line bg-raised text-ink"
+                }`}
+              />
+            </label>
+          );
+        })}
       </div>
 
-      <p className="mt-4 text-sm text-slate-600">
-        Weekly budget:{" "}
-        <strong data-testid="availability-total" className="font-semibold text-slate-900">
+      <p className="text-ink-muted mt-4 text-sm">
+        {"That is "}
+        <strong data-testid="availability-total" className="tnum text-ink font-semibold">
           {formatHours(total)}
         </strong>
+        {" a week. A day left at zero is never scheduled."}
       </p>
     </div>
   );

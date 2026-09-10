@@ -1,7 +1,98 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Self-hosted, so no render-blocking request to a third party. */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
 @custom-variant dark (&:is(.dark *));
+
+/* ---------------------------------------------------------------------------
+ * Design tokens
+ *
+ * One warm-neutral scale plus a single accent, defined once and swapped under
+ * prefers-color-scheme. Every surface in the application reads from these, so
+ * the two modes cannot drift apart.
+ *
+ * Shape rule: 10px radius on every container and control, full radius only on
+ * status pills. Nothing else.
+ * ------------------------------------------------------------------------ */
+
+:root {
+  --surface: #faf9f7;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f2f0ed;
+
+  --line: #e5e2dd;
+  --line-strong: #d3cfc8;
+
+  --ink: #1a1815;
+  --ink-muted: #6f6a63;
+  --ink-faint: #9c968d;
+
+  --brand: #0f6b5c;
+  --brand-hover: #0b5348;
+  --brand-contrast: #ffffff;
+  --brand-soft: #e8f2ef;
+  --brand-line: #b4d8ce;
+
+  --danger: #9c2740;
+  --danger-soft: #fbf0f2;
+  --danger-line: #eccdd4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #100f0d;
+    --surface-raised: #1a1815;
+    --surface-sunken: #161412;
+
+    --line: #2b2723;
+    --line-strong: #423c35;
+
+    --ink: #f4f2ef;
+    --ink-muted: #a39c93;
+    --ink-faint: #756e66;
+
+    --brand: #35a894;
+    --brand-hover: #4cc0ab;
+    --brand-contrast: #06211c;
+    --brand-soft: #12302b;
+    --brand-line: #1f4f47;
+
+    --danger: #f2879b;
+    --danger-soft: #2a1419;
+    --danger-line: #52242e;
+  }
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", monospace;
+
+  --color-surface: var(--surface);
+  --color-raised: var(--surface-raised);
+  --color-sunken: var(--surface-sunken);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-contrast: var(--brand-contrast);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+
+  --radius-card: 10px;
+}
 
 :root {
   --radius: 0.625rem;
@@ -110,9 +201,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@utility bg-cosmic {
-  background-image: linear-gradient(to bottom, #0a0e1a, #0f1529, #0a0e1a);
-}
 
 @layer base {
   * {
@@ -120,5 +208,35 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Base
+ * ------------------------------------------------------------------------ */
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--surface);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Minutes and counts sit next to each other constantly, so figures need to
+     line up rather than dance as values change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
   }
 }
