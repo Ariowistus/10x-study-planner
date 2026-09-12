@@ -1,7 +1,7 @@
 ---
 main_goal: A learner turns a topic list and a weekly time budget into a dated plan they keep using.
 north_star: S-02 — generating a week of sessions that respects declared availability.
-top_blocker: No hosted database yet, so nothing can be exercised against real data.
+top_blocker: None. F-04 and F-05 landed on 2026-09-11; the app runs against a hosted database at a public address.
 ---
 
 # Roadmap — 10x Study Planner
@@ -35,6 +35,7 @@ If only one thing works, it is this.
 - **Outcome**: A learner presses one button and receives dated sessions that
   never exceed the minutes declared for a day, ordered by deadline pressure.
 - **PRD refs**: FR-004, US-008, US-009, US-010, US-011
+- **Change ID**: S-02-weekly-plan
 - **Prerequisites**: S-01
 - **Risk**: **High, and the only real risk in the project.** The rule produces
   plausible-looking output when it is wrong, so a defect is invisible rather
@@ -66,7 +67,7 @@ If only one thing works, it is this.
 - **Prerequisites**: F-04, F-05
 - **Risk**: Medium. Depends on external accounts and on a build target that
   cannot be produced on the development machine.
-- **Status**: blocked — waiting on F-04
+- **Status**: done
 
 ## Foundations
 
@@ -95,14 +96,14 @@ If only one thing works, it is this.
 - **Unlocks**: S-05
 - A Supabase project with the migration applied, and its credentials available
   locally and to CI.
-- **Status**: blocked — needs an account to be created
-- This is the **top blocker**. Until it exists, the application has been
-  exercised only against its own test doubles and a local server with no data.
+- **Status**: done
+- Was the top blocker until 2026-09-11. The Supabase project exists, the
+  migration is applied, and the credentials are available locally and to CI.
 
 ### F-05 — Production deployment
 - **Unlocks**: S-05
 - A Cloudflare account, a scoped API token, and one run of the deploy workflow.
-- **Status**: blocked — needs F-04 and an account
+- **Status**: done — live at https://10x-study-planner.ariowistus.workers.dev
 
 ## Order
 
@@ -114,8 +115,12 @@ F-03 ───────────────┘
 F-04 ──> F-05 ──> S-05
 ```
 
-Everything on the top row is finished. The bottom row is entirely external
-setup: two free accounts, four secrets, one manual workflow run.
+Both rows are finished. The bottom row was entirely external setup — two free
+accounts, four secrets, one manual workflow run — and it landed on 2026-09-11.
+
+Statuses for F-04, F-05 and S-05 plus the `top_blocker` field were corrected on
+2026-09-12: the work had shipped but the roadmap still described the project as
+blocked on a database that already existed.
 
 ## What is deliberately not on this roadmap
 

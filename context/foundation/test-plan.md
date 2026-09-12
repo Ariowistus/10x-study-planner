@@ -76,8 +76,10 @@ tested artefact is the one that ships.
 | A learner registers, declares availability, adds a topic, generates a plan, marks a session done, and sees progress move | SC-1, US-003, US-006, US-008, US-012, US-015 |
 | A day left at zero minutes receives nothing | US-007 |
 | The topic due soonest is scheduled ahead of one due in two months | US-009 |
+| Regenerating a week leaves a completed session untouched and does not replan its evening | SC-3, the S-02 manual gate |
+| Evenings that have already passed receive no work | FR-004 |
 | A deleted topic disappears | US-005 |
-| A topic with a zero estimate is rejected | FR-002 validation |
+| A topic with a zero estimate is rejected, both in the browser and when the browser is bypassed | FR-002 validation |
 | A second learner sees an empty account | SC-5 |
 
 The isolation test is deliberately end-to-end rather than a unit test of a
@@ -117,9 +119,11 @@ push rather than at deploy time.
 1. **Unit tests do not run in `workerd`.** A runtime difference between Node and
    the production edge runtime would surface only in end-to-end tests or in
    production.
-2. **The end-to-end suite runs against a local Supabase**, not the hosted
+2. **The end-to-end suite runs against a local Supabase in CI**, not the hosted
    project. Configuration differences — email confirmation, password policy,
-   rate limits — are not covered.
+   rate limits — are not covered there. The suite has been run against the
+   hosted project from a developer machine, which is how the regeneration
+   scenario was first verified, but nothing automates that.
 3. **Week boundaries are the server's, not the learner's.** `todayIso()` reads
    the server clock, so a learner in a distant timezone could see the week roll
    over at an odd moment. Not covered by a test because the behaviour is not yet

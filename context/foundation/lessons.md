@@ -110,3 +110,41 @@ found. This file grows by addition; earlier entries are not rewritten.
   risk of missing a deadline — and needs its own tests, not a special case in
   the allocation loop.
 - **Applies to**: frame, plan, impl-review
+
+## Close every artefact that cited a blocker, in the session the blocker clears
+
+- **Context**: Any change whose plan carries a manual verification gate, or whose
+  roadmap item is `blocked` on external setup (an account, a hosted service, a
+  deployment target).
+- **Problem**: F-04 and F-05 landed on 2026-09-11. For a full day afterwards the
+  roadmap still listed them as `blocked — needs an account`, its `top_blocker`
+  field still read "No hosted database yet", `S-05` was still waiting on F-04,
+  and the implementation review still closed with "the manual verification gate
+  has not been walked, because there is no hosted database yet". Four statements
+  across three documents, all false, all describing a project that was by then
+  deployed and publicly reachable. Nothing catches this: the code was right, CI
+  was green, and no gate reads the roadmap.
+- **Rule**: When an external blocker clears, grep the context directory for the
+  blocker's name before the session ends and close every artefact that cited it.
+  An artefact that outlives its own premise reads as a defect in the project to
+  anyone who opens it later.
+- **Applies to**: plan, implement, impl-review
+
+## A manual gate that nothing automates is a gate that never closes
+
+- **Context**: Any plan phase whose verification is a human walk-through rather
+  than an assertion — especially the final gate of a slice.
+- **Problem**: The S-02 plan's manual gate ended with "confirm that regenerating
+  does not resurrect the completed session". The behaviour is implemented
+  correctly in `regenerateWeek`, which deletes only `planned` rows and subtracts
+  settled minutes from the evening's capacity. But the domain unit tests cannot
+  reach it — it is I/O — and `e2e/planner.spec.ts` stops one step earlier, after
+  marking a session done. The single riskiest interaction in the slice, named
+  explicitly by the plan as needing verification, was for two days the one
+  thing no test touched. The assertion landed on 2026-09-12; the rule below is
+  what keeps the next gate from lasting that long.
+- **Rule**: When a plan names a manual verification step, decide in the same
+  phase whether an automated assertion can carry it. If it can, write the
+  assertion instead of the gate. A gate that survives to the end of a slice is a
+  gap with a promise attached.
+- **Applies to**: plan, plan-review, implement, impl-review

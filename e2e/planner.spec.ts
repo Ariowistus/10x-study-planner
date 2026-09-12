@@ -57,6 +57,42 @@ test.describe("planning a week", () => {
     await expect(page.getByTestId("progress-percent").first()).toHaveText("50");
   });
 
+  // S-02 plan, manual gate step 7.2: regeneration must not resurrect settled work.
+  test("regenerating the week does not resurrect a completed session", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    // One hour on Monday and Tuesday against two hours of work, so the topic
+    // needs both evenings and each evening holds exactly one session.
+    await setAvailability(page, [60, 60, 0, 0, 0, 0, 0]);
+    await addTopic(page, { title: "Spanning tree protocol", estimateMinutes: 120, priority: 4 });
+
+    await page.goto(`/dashboard?week=${nextWeekMonday()}`);
+    await page.getByTestId("generate-plan").click();
+    await expect(page.getByTestId("session")).toHaveCount(2);
+
+    await page.getByTestId("mark-done").first().click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Session marked done");
+    await expect(page.getByTestId("completed-minutes")).toHaveText("1 h");
+
+    const done = page.locator('[data-testid="session"][data-status="done"]');
+    const planned = page.locator('[data-testid="session"][data-status="planned"]');
+    await expect(done).toHaveCount(1);
+    await expect(planned).toHaveCount(1);
+
+    // Regenerating keeps sessions the learner already acted on and removes the
+    // capacity they occupy, so the completed evening must survive untouched and
+    // must not reappear as planned work.
+    await page.getByTestId("generate-plan").click();
+    await expect(page.getByTestId("flash-ok")).toBeVisible();
+
+    await expect(done).toHaveCount(1);
+    await expect(planned).toHaveCount(1);
+    await expect(page.getByTestId("session")).toHaveCount(2);
+    await expect(page.getByTestId("completed-minutes")).toHaveText("1 h");
+    await expect(page.getByTestId("planned-minutes")).toHaveText("1 h");
+    await expect(page.getByTestId("progress-percent").first()).toHaveText("50");
+  });
+
   // US-007: a day with no availability stays empty.
   test("respects a day the learner keeps free", async ({ page }) => {
     await registerAndSignIn(page);

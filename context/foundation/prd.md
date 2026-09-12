@@ -156,7 +156,31 @@ managers planning on someone else's behalf.
 | FR-006 | A dashboard showing this week's sessions by day and per-topic progress |
 | FR-007 | Database-level isolation of every learner-owned row |
 
-## 7. Business logic
+## 7. Non-functional requirements
+
+Properties measurable from outside the product, without reading its code. Each
+one is a commitment at the product boundary; how it is achieved belongs to
+`tech-stack.md` and `infrastructure.md`.
+
+- NFR-001: A new learner reaches a generated weekly plan within three minutes of
+  first opening the sign-up page.
+- NFR-002: Every action a learner can take completes with client-side JavaScript
+  disabled. No capability is reachable only through a scripted interaction.
+- NFR-003: No account can read or write another account's data, including when
+  the browser is bypassed and the HTTP interface is called directly.
+- NFR-004: A rejected input leaves the learner on a page that names what was
+  wrong. Submitting an invalid value never fails silently.
+- NFR-005: The product sends no email to learners at any point, including
+  registration.
+- NFR-006: Learner data is stored in the European Union.
+- NFR-007: The product serves a single-digit number of learners. Concurrency
+  beyond that is explicitly out of scope, not an unstated assumption.
+
+Added on 2026-09-12. The properties themselves were decided earlier — they are
+traceable to the success criteria, the access-control section and the platform
+record — but they had never been stated as requirements in their own right.
+
+## 8. Business logic
 
 > **The rule.** The planner allocates each week's declared available minutes to
 > study topics in descending order of an urgency score derived from priority,
@@ -179,7 +203,7 @@ Behaviour required of the rule:
 6. **Determinism.** The same inputs produce the same plan, so the behaviour is
    testable and explainable to the learner.
 
-## 8. Data model
+## 9. Data model
 
 **topics** — what has to be covered
 `id`, `user_id`, `title`, `estimated_minutes`, `completed_minutes`,
@@ -198,7 +222,7 @@ Behaviour required of the rule:
 Every learner-owned row carries `user_id` so isolation can be enforced by a
 direct comparison with the authenticated user.
 
-## 9. Access control
+## 10. Access control
 
 - Authentication is email and password.
 - Authorisation is ownership: a learner reads and writes only rows whose
@@ -207,7 +231,7 @@ direct comparison with the authenticated user.
   application-level mistake cannot expose another learner's data.
 - There are no roles, no sharing and no administrative access in this scope.
 
-## 10. Non-goals
+## 11. Non-goals
 
 - Mobile or desktop clients.
 - Spaced repetition or learning-science scheduling beyond the urgency rule.
@@ -218,7 +242,7 @@ direct comparison with the authenticated user.
 - Payments, subscription tiers, quotas.
 - Import from external tools.
 
-## 11. Open questions
+## 12. Open questions
 
 1. The minimum useful session block is set to 15 minutes; 20 or 25 may serve the
    persona better and this has not been validated.

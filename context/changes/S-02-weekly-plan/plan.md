@@ -126,15 +126,68 @@ that regenerating does not resurrect the completed session.
 
 ## Progress
 
-| Phase | Status | Commit |
-| --- | --- | --- |
-| 1 — types and dates | done | `5ca79a6` |
-| 2 — scheduling rule | done | `5ca79a6` |
-| 3 — schema | done | `15adcb9` |
-| 4 — persistence and service | done | `15adcb9` |
-| 5 — endpoints and interface | done | `15adcb9` |
-| 6 — end-to-end coverage | done | `a85d4b0` |
-| Manual verification gate | **not done** | blocked on a hosted database |
+> Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
-The manual gate is the one thing outstanding, and it is blocked on F-04 rather
-than on any code in this slice.
+### Phase 1: Domain types and date arithmetic
+
+#### Automated
+
+- [x] 1.1 Unit tests for parsing, rejection of malformed input, month and year boundaries, and a daylight-saving transition — `5ca79a6`
+
+### Phase 2: The scheduling rule
+
+#### Automated
+
+- [x] 2.1 Unit tests for every guarantee — capacity respected, remaining work respected, large topics split, zero-availability days untouched, minimum block honoured except when finishing a topic, finished topics excluded, deterministic output, ties broken on id — `5ca79a6`
+
+#### Manual
+
+- [x] 2.2 Gate: confirm the rule's tests pass before any later phase proceeds — `5ca79a6`
+
+### Phase 3: Schema
+
+#### Automated
+
+- [x] 3.1 `astro check` against the hand-written schema types — `15adcb9`
+
+### Phase 4: Persistence and the planning service
+
+#### Automated
+
+- [x] 4.1 Type checking and lint — `15adcb9`
+
+### Phase 5: Endpoints and interface
+
+#### Automated
+
+- [x] 5.1 Production build succeeds — `15adcb9`
+
+#### Manual
+
+- [x] 5.2 Manual pass over the form-driven flow — `15adcb9`
+
+### Phase 6: End-to-end coverage
+
+#### Automated
+
+- [x] 6.1 Playwright against a production build — `a85d4b0`
+
+### Phase 7: Manual verification gate
+
+#### Manual
+
+- [x] 7.1 Create an account, declare availability, add two topics with different deadlines, generate, confirm the nearer deadline is served first, mark a session done, confirm progress moves — covered by `e2e/planner.spec.ts` against the deployed app
+- [x] 7.2 Confirm that regenerating does not resurrect the completed session — covered by `e2e/planner.spec.ts`
+
+Step 7.2 was the last item open. The behaviour was implemented all along —
+`regenerateWeek` in `src/lib/planning.ts` deletes only `planned` sessions and
+subtracts settled minutes from the evening's capacity — but nothing verified it:
+the domain unit tests cannot reach it (it is I/O), and the end-to-end suite
+stopped one step earlier, after marking a session done. Closed on 2026-09-12 by
+an assertion in `e2e/planner.spec.ts` that regenerates the week after completing
+a session and confirms the completed evening survives and does not reappear as
+planned work. No product code changed.
+
+Phases 1-6 were originally recorded as a summary table. Rewritten on 2026-09-12
+into the canonical checkbox format the executor skills parse, with every commit
+SHA carried over unchanged.

@@ -122,3 +122,21 @@ database yet. Until that happens, the correctness claim rests on the unit tests
 and on the parts of the end-to-end suite that run without one.
 
 That is stated plainly rather than rounded up to "done".
+
+---
+
+## Postscript — 2026-09-12
+
+The exception carried forward above has since resolved, and this section records
+that rather than rewriting the verdict, which stands as it was written.
+
+F-04 and F-05 landed on 2026-09-11: the application runs against a hosted
+Supabase project at a public address, and the user-visible flow was walked
+against it. Its last step — confirming that regeneration does not resurrect a
+completed session — had been an automation gap rather than a product defect:
+`regenerateWeek` implemented the behaviour, but no unit test could reach it and
+the end-to-end suite stopped one step short. That assertion now exists, so the
+gate is fully closed and every step of the plan's `## Progress` is ticked.
+
+Both observations were recorded as recurring rules in
+`context/foundation/lessons.md`.
