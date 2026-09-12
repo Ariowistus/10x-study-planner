@@ -7,6 +7,15 @@ import { startOfWeek } from "@/domain/date";
 
 export const prerender = false;
 
+/** Polish needs three forms: 1 sesję, 2-4 sesje, 5+ sesji. */
+function sessionNoun(count: number): string {
+  if (count === 1) return "sesję";
+  const last = count % 10;
+  const lastTwo = count % 100;
+  if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return "sesje";
+  return "sesji";
+}
+
 /** Builds or rebuilds the plan for a week (FR-004, US-011). */
 export const POST: APIRoute = async (context) => {
   const auth = authenticate(context);
@@ -22,8 +31,8 @@ export const POST: APIRoute = async (context) => {
 
     const message =
       plan.sessions.length === 0
-        ? "No sessions could be scheduled. Check your availability and topics."
-        : `Planned ${plan.sessions.length} session${plan.sessions.length === 1 ? "" : "s"}`;
+        ? "Nie udało się zaplanować żadnej sesji. Sprawdź dostępność i tematy."
+        : `Zaplanowano ${plan.sessions.length} ${sessionNoun(plan.sessions.length)}`;
 
     return redirectWith(context, "/dashboard", { week, ok: message });
   } catch (cause) {

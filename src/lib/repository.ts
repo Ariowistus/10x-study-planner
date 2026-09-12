@@ -53,7 +53,10 @@ function unwrap<T>(result: { data: T | null; error: { message: string } | null }
 // ---------------------------------------------------------------------------
 
 export async function listTopics(db: Db): Promise<TopicRow[]> {
-  return unwrap(await db.from("topics").select("*").order("created_at", { ascending: true }), "Could not load topics");
+  return unwrap(
+    await db.from("topics").select("*").order("created_at", { ascending: true }),
+    "Nie udało się wczytać tematów",
+  );
 }
 
 export async function createTopic(
@@ -73,7 +76,7 @@ export async function createTopic(
       })
       .select("*")
       .single(),
-    "Could not create the topic",
+    "Nie udało się dodać tematu",
   );
 }
 
@@ -96,7 +99,7 @@ export async function updateTopic(
   if (patch.status !== undefined) payload.status = patch.status;
 
   if (Object.keys(payload).length === 0) {
-    throw new RepositoryError("Nothing to update", 400);
+    throw new RepositoryError("Nie ma czego zaktualizować", 400);
   }
 
   const { data, error } = await db.from("topics").update(payload).eq("id", topicId).select("*").maybeSingle();
@@ -106,7 +109,7 @@ export async function updateTopic(
   }
   if (data === null) {
     // Either the topic does not exist, or row level security hides it.
-    throw new RepositoryError("Topic not found", 404);
+    throw new RepositoryError("Nie znaleziono tematu", 404);
   }
   return data;
 }
@@ -124,7 +127,7 @@ export async function deleteTopic(db: Db, topicId: string): Promise<void> {
 
 /** Always returns seven values; a weekday with no row means zero minutes. */
 export async function getAvailability(db: Db): Promise<Availability> {
-  const rows = unwrap(await db.from("availability").select("weekday, minutes"), "Could not load availability");
+  const rows = unwrap(await db.from("availability").select("weekday, minutes"), "Nie udało się wczytać dostępności");
 
   const minutes: number[] = [0, 0, 0, 0, 0, 0, 0];
   for (const row of rows) {
@@ -157,7 +160,7 @@ export async function upsertPlan(db: Db, userId: string, weekStart: IsoDate): Pr
       )
       .select("id")
       .single(),
-    "Could not create the plan",
+    "Nie udało się utworzyć planu",
   );
 
   return plan.id;
@@ -171,7 +174,7 @@ export async function listSessionsInRange(db: Db, from: IsoDate, to: IsoDate): P
       .gte("scheduled_date", from)
       .lte("scheduled_date", to)
       .order("scheduled_date", { ascending: true }),
-    "Could not load sessions",
+    "Nie udało się wczytać sesji",
   );
 }
 
@@ -227,7 +230,7 @@ export async function setSessionStatus(db: Db, sessionId: string, status: Sessio
   if (error) {
     const notFound = error.message.includes("session not found");
     throw new RepositoryError(
-      notFound ? "Session not found" : `Could not update the session: ${error.message}`,
+      notFound ? "Nie znaleziono sesji" : `Could not update the session: ${error.message}`,
       notFound ? 404 : 500,
     );
   }

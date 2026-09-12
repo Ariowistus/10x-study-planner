@@ -23,13 +23,19 @@ if (db) {
     topics = rows.map(toTopic);
     availability = saved;
   } catch (cause) {
-    loadError = cause instanceof Error ? cause.message : "Could not load your data";
+    loadError = cause instanceof Error ? cause.message : "Nie udało się wczytać danych";
   }
 } else {
-  loadError = "Supabase is not configured";
+  loadError = "Supabase nie jest skonfigurowany";
 }
 
 const priorities = [1, 2, 3, 4, 5];
+
+const topicStatusLabel: Record<string, string> = {
+  active: "aktywny",
+  done: "zrobiony",
+  archived: "zarchiwizowany",
+};
 
 const field =
   "w-full rounded-[10px] border border-line bg-raised px-3 py-2 text-sm text-ink transition-colors focus:border-brand focus:outline-none";
@@ -38,7 +44,7 @@ const primaryButton =
   "rounded-[10px] bg-brand px-4 py-2 text-sm font-medium text-brand-contrast transition-colors hover:bg-brand-hover active:translate-y-px";
 ---
 
-<AppLayout title="Topics" subtitle="What you have to cover, and how much time you actually have." active="topics">
+<AppLayout title="Tematy" subtitle="Co masz do przerobienia i ile czasu naprawdę masz." active="topics">
   {
     loadError && (
       <p class="border-danger-line bg-danger-soft text-danger mb-8 rounded-[10px] border px-4 py-3 text-sm">
@@ -48,33 +54,34 @@ const primaryButton =
   }
 
   <section class="border-line mb-12 border-b pb-10">
-    <h2 class="text-lg font-semibold tracking-tight">Your week</h2>
+    <h2 class="text-lg font-semibold tracking-tight">Twój tydzień</h2>
     <p class="text-ink-muted mt-1 mb-5 text-sm">
-      Minutes you can realistically study on each day. Be honest rather than optimistic.
+      Minuty, które realnie możesz przeznaczyć na naukę każdego dnia. Lepiej szczerze niż optymistycznie.
     </p>
 
     <form method="POST" action="/api/availability">
       <AvailabilityEditor client:load initial={[...availability]} />
       <button type="submit" data-testid="save-availability" class:list={["mt-5", primaryButton]}>
-        Save availability
+        Zapisz dostępność
       </button>
     </form>
   </section>
 
   <section class="border-line mb-12 border-b pb-10">
-    <h2 class="text-lg font-semibold tracking-tight">Add a topic</h2>
+    <h2 class="text-lg font-semibold tracking-tight">Dodaj temat</h2>
     <p class="text-ink-muted mt-1 mb-5 text-sm">
-      An estimate you believe, a priority you mean, and a deadline only if there really is one.
+      Szacowany czas, w który wierzysz, priorytet, który naprawdę masz na myśli, i termin tylko wtedy, gdy faktycznie
+      istnieje.
     </p>
 
     <form method="POST" action="/api/topics" class="grid gap-4 sm:grid-cols-6">
       <label class="flex flex-col gap-1.5 sm:col-span-3">
-        <span class:list={label}>Title</span>
+        <span class:list={label}>Tytuł</span>
         <input type="text" name="title" required maxlength="200" data-testid="topic-title" class:list={field} />
       </label>
 
       <label class="flex flex-col gap-1.5 sm:col-span-1">
-        <span class:list={label}>Minutes</span>
+        <span class:list={label}>Minuty</span>
         <input
           type="number"
           name="estimatedMinutes"
@@ -89,7 +96,7 @@ const primaryButton =
       </label>
 
       <label class="flex flex-col gap-1.5 sm:col-span-1">
-        <span class:list={label}>Priority</span>
+        <span class:list={label}>Priorytet</span>
         <select name="priority" data-testid="topic-priority" class:list={field}>
           {
             priorities.map((value) => (
@@ -102,18 +109,18 @@ const primaryButton =
       </label>
 
       <label class="flex flex-col gap-1.5 sm:col-span-1">
-        <span class:list={label}>Deadline</span>
+        <span class:list={label}>Termin</span>
         <input type="date" name="deadline" data-testid="topic-deadline" class:list={field} />
       </label>
 
       <div class="sm:col-span-6">
-        <button type="submit" data-testid="add-topic" class:list={primaryButton}>Add topic</button>
+        <button type="submit" data-testid="add-topic" class:list={primaryButton}>Dodaj temat</button>
       </div>
     </form>
   </section>
 
   <section>
-    <h2 class="mb-5 text-lg font-semibold tracking-tight">Your topics</h2>
+    <h2 class="mb-5 text-lg font-semibold tracking-tight">Twoje tematy</h2>
 
     {
       topics.length === 0 ? (
@@ -121,7 +128,7 @@ const primaryButton =
           data-testid="topics-empty"
           class="border-line-strong bg-raised text-ink-muted rounded-[10px] border border-dashed px-5 py-8 text-center text-[15px]"
         >
-          Nothing here yet. Add the first topic above, then generate a plan.
+          Jeszcze nic tu nie ma. Dodaj powyżej pierwszy temat, a potem wygeneruj plan.
         </p>
       ) : (
         <ul data-testid="topic-list" class="flex flex-col gap-4">
@@ -140,12 +147,12 @@ const primaryButton =
               >
                 <form method="POST" action={`/api/topics/${topic.id}`} class="grid gap-3 sm:grid-cols-6 sm:items-end">
                   <label class="flex flex-col gap-1.5 sm:col-span-2">
-                    <span class:list={label}>Title</span>
+                    <span class:list={label}>Tytuł</span>
                     <input type="text" name="title" value={topic.title} maxlength="200" class:list={field} />
                   </label>
 
                   <label class="flex flex-col gap-1.5 sm:col-span-1">
-                    <span class:list={label}>Minutes</span>
+                    <span class:list={label}>Minuty</span>
                     <input
                       type="number"
                       name="estimatedMinutes"
@@ -158,7 +165,7 @@ const primaryButton =
                   </label>
 
                   <label class="flex flex-col gap-1.5 sm:col-span-1">
-                    <span class:list={label}>Priority</span>
+                    <span class:list={label}>Priorytet</span>
                     <select name="priority" class:list={field}>
                       {priorities.map((value) => (
                         <option value={value} selected={value === topic.priority}>
@@ -169,7 +176,7 @@ const primaryButton =
                   </label>
 
                   <label class="flex flex-col gap-1.5 sm:col-span-1">
-                    <span class:list={label}>Deadline</span>
+                    <span class:list={label}>Termin</span>
                     <input type="date" name="deadline" value={topic.deadline ?? ""} class:list={field} />
                   </label>
 
@@ -180,7 +187,7 @@ const primaryButton =
                       value="update"
                       class="border-line text-ink-muted hover:border-line-strong hover:text-ink rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors active:translate-y-px"
                     >
-                      Save
+                      Zapisz
                     </button>
                     <button
                       type="submit"
@@ -189,7 +196,7 @@ const primaryButton =
                       data-testid="delete-topic"
                       class="border-danger-line text-danger hover:bg-danger-soft rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors active:translate-y-px"
                     >
-                      Delete
+                      Usuń
                     </button>
                   </div>
                 </form>
@@ -200,12 +207,12 @@ const primaryButton =
                   </div>
                   <p class="tnum text-ink-faint text-[12px] whitespace-nowrap">
                     {topic.completedMinutes}
-                    {" done, "}
+                    {" zrobione, "}
                     <span data-testid="topic-remaining" class="text-ink-muted font-medium">
                       {left}
                     </span>
-                    {" left"}
-                    {topic.status !== "active" && `, ${topic.status}`}
+                    {" zostało"}
+                    {topic.status !== "active" && `, ${topicStatusLabel[topic.status] ?? topic.status}`}
                   </p>
                 </div>
               </li>

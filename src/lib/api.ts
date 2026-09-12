@@ -26,12 +26,12 @@ export interface AuthedRequest {
 export function authenticate(context: APIContext): AuthedRequest | Response {
   const user = context.locals.user;
   if (!user) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response("Brak autoryzacji", { status: 401 });
   }
 
   const db = createClient(context.request.headers, context.cookies);
   if (!db) {
-    return new Response("Supabase is not configured", { status: 503 });
+    return new Response("Supabase nie jest skonfigurowany", { status: 503 });
   }
 
   return { db, userId: user.id };
@@ -60,7 +60,7 @@ export function describeFailure(cause: unknown): { message: string; status: numb
   if (cause instanceof Error) {
     return { message: cause.message, status: 500 };
   }
-  return { message: "Unexpected error", status: 500 };
+  return { message: "Nieoczekiwany błąd", status: 500 };
 }
 
 function isZodError(cause: unknown): cause is ZodError {

@@ -20,7 +20,7 @@ export const POST: APIRoute = async (context) => {
     const parsed = availabilitySchema.parse({ minutes });
     await setAvailability(auth.db, auth.userId, parsed.minutes);
 
-    return redirectWith(context, "/topics", { ok: "Availability saved" });
+    return redirectWith(context, "/topics", { ok: "Zapisano dostępność" });
   } catch (cause) {
     return redirectError(context, "/topics", describeFailure(cause).message);
   }

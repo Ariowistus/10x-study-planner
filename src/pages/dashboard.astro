@@ -21,21 +21,22 @@ if (db) {
   try {
     week = await loadWeekView(db, weekStart);
   } catch (cause) {
-    loadError = cause instanceof Error ? cause.message : "Could not load your plan";
+    loadError = cause instanceof Error ? cause.message : "Nie udało się wczytać planu";
   }
 } else {
-  loadError = "Supabase is not configured";
+  loadError = "Supabase nie jest skonfigurowany";
 }
 
 const today = todayIso();
-const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const dayNames = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
+const dayShort = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
 
 function formatMinutes(total: number): string {
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
   if (hours === 0) return `${minutes} min`;
-  if (minutes === 0) return `${hours} h`;
-  return `${hours} h ${minutes} min`;
+  if (minutes === 0) return `${hours} godz.`;
+  return `${hours} godz. ${minutes} min`;
 }
 
 function dayOfMonth(iso: string): string {
@@ -44,6 +45,12 @@ function dayOfMonth(iso: string): string {
 
 const previousWeek = addDays(weekStart, -7);
 const nextWeek = addDays(weekStart, 7);
+
+const statusLabel: Record<string, string> = {
+  planned: "zaplanowane",
+  done: "zrobione",
+  skipped: "pominięte",
+};
 
 const statusPill: Record<string, string> = {
   planned: "border border-line text-ink-faint",
@@ -56,7 +63,7 @@ const ghostButton =
 const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transition-colors active:translate-y-px";
 ---
 
-<AppLayout title="This week" subtitle="What to study, on which evening, and for how long." active="dashboard">
+<AppLayout title="Ten tydzień" subtitle="Czego się uczyć, którego wieczoru i jak długo." active="dashboard">
   {
     loadError && (
       <p class="border-danger-line bg-danger-soft text-danger mb-8 rounded-[10px] border px-4 py-3 text-sm">
@@ -70,28 +77,28 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
       <>
         <section class="border-line mb-10 flex flex-wrap items-end justify-between gap-6 border-b pb-6">
           <div>
-            <p class="text-ink-faint text-[13px]">Week of</p>
+            <p class="text-ink-faint text-[13px]">Tydzień</p>
             <p data-testid="week-range" class="tnum mt-0.5 text-lg font-medium tracking-tight">
-              {week.weekStart} to {week.weekEnd}
+              {week.weekStart} – {week.weekEnd}
             </p>
             <p class="tnum text-ink-muted mt-2 text-sm">
               <span data-testid="completed-minutes" class="text-brand font-medium">
                 {formatMinutes(week.completedMinutes)}
               </span>
-              {" done, "}
+              {" zrobione, "}
               <span data-testid="planned-minutes" class="text-ink font-medium">
                 {formatMinutes(week.plannedMinutes)}
               </span>
-              {" still ahead"}
+              {" przed Tobą"}
             </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
             <a href={`/dashboard?week=${previousWeek}`} class:list={ghostButton}>
-              Previous
+              Poprzedni
             </a>
             <a href={`/dashboard?week=${nextWeek}`} class:list={ghostButton}>
-              Next
+              Następny
             </a>
             <form method="POST" action="/api/plan/generate">
               <input type="hidden" name="weekStart" value={week.weekStart} />
@@ -100,7 +107,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                 data-testid="generate-plan"
                 class="bg-brand text-brand-contrast hover:bg-brand-hover rounded-[10px] px-4 py-2 text-sm font-medium transition-colors active:translate-y-px"
               >
-                {week.hasPlan ? "Regenerate" : "Generate plan"}
+                {week.hasPlan ? "Przelicz plan" : "Wygeneruj plan"}
               </button>
             </form>
           </div>
@@ -111,11 +118,11 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
             data-testid="plan-empty"
             class="border-line-strong bg-raised text-ink-muted mb-10 rounded-[10px] border border-dashed px-5 py-8 text-center text-[15px]"
           >
-            Nothing scheduled for this week yet. Add topics and your available minutes on the
+            Na ten tydzień nie ma jeszcze nic zaplanowanego. Dodaj tematy i dostępne minuty na stronie
             <a href="/topics" class="text-brand mx-1 font-medium underline underline-offset-2">
-              Topics
+              Tematy
             </a>
-            page, then generate a plan.
+            , a potem wygeneruj plan.
           </p>
         )}
 
@@ -139,7 +146,9 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                 ]}
               >
                 <header class="mb-3 flex items-baseline justify-between gap-1">
-                  <h2 class="text-[13px] font-semibold tracking-tight">{dayNames[index].slice(0, 3)}</h2>
+                  <h2 class="text-[13px] font-semibold tracking-tight" aria-label={dayNames[index]}>
+                    {dayShort[index]}
+                  </h2>
                   <span class="tnum text-ink-faint text-[11px]">{dayOfMonth(day.date)}</span>
                 </header>
 
@@ -155,7 +164,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
 
                 {day.sessions.length === 0 ? (
                   <p class="text-ink-faint text-[12px]">
-                    {day.availableMinutes === 0 ? "Kept free" : "Nothing scheduled"}
+                    {day.availableMinutes === 0 ? "Dzień wolny" : "Nic nie zaplanowano"}
                   </p>
                 ) : (
                   <ul class="flex flex-col gap-2">
@@ -174,7 +183,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                             statusPill[session.status],
                           ]}
                         >
-                          {session.status}
+                          {statusLabel[session.status]}
                         </span>
 
                         <div class="mt-2 flex flex-wrap gap-1">
@@ -187,7 +196,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                                 data-testid="mark-done"
                                 class:list={[tinyButton, "border-brand-line text-brand hover:bg-brand-soft"]}
                               >
-                                Done
+                                Zrobione
                               </button>
                             </form>
                           )}
@@ -200,7 +209,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                                 data-testid="mark-skipped"
                                 class:list={[tinyButton, "border-line text-ink-muted hover:bg-sunken hover:text-ink"]}
                               >
-                                Skip
+                                Pomiń
                               </button>
                             </form>
                           )}
@@ -213,7 +222,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                                 data-testid="mark-planned"
                                 class:list={[tinyButton, "border-line text-ink-muted hover:bg-sunken hover:text-ink"]}
                               >
-                                Undo
+                                Cofnij
                               </button>
                             </form>
                           )}
@@ -228,15 +237,15 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
         </section>
 
         <section>
-          <h2 class="mb-5 text-lg font-semibold tracking-tight">Topic progress</h2>
+          <h2 class="mb-5 text-lg font-semibold tracking-tight">Postęp tematów</h2>
 
           {week.topics.length === 0 ? (
             <p class="text-ink-muted text-[15px]">
-              No topics yet. Add them on the
+              Nie masz jeszcze tematów. Dodaj je na stronie
               <a href="/topics" class="text-brand mx-1 font-medium underline underline-offset-2">
-                Topics
+                Tematy
               </a>
-              page.
+              .
             </p>
           ) : (
             <ul data-testid="progress-list" class="flex flex-col gap-5">
@@ -246,7 +255,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                     <span class="text-[15px] font-medium">{entry.topic.title}</span>
                     <span class="tnum text-ink-faint text-[13px]">
                       {entry.topic.completedMinutes}
-                      {` of ${entry.topic.estimatedMinutes} min, `}
+                      {` z ${entry.topic.estimatedMinutes} min, `}
                       <span data-testid="progress-percent" class="text-ink-muted font-medium">
                         {entry.percentComplete}
                       </span>

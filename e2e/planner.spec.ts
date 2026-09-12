@@ -37,7 +37,7 @@ test.describe("planning a week", () => {
     await expect(page.getByTestId("plan-empty")).toBeVisible();
 
     await page.getByTestId("generate-plan").click();
-    await expect(page.getByTestId("flash-ok")).toContainText("Planned 2 sessions");
+    await expect(page.getByTestId("flash-ok")).toContainText("Zaplanowano 2 sesje");
 
     // Two hours of work against two one-hour evenings.
     const sessions = page.getByTestId("session");
@@ -45,15 +45,15 @@ test.describe("planning a week", () => {
     await expect(sessions.first()).toContainText("Routing protocols");
     await expect(sessions.first()).toContainText("60 min");
 
-    await expect(page.getByTestId("planned-minutes")).toHaveText("2 h");
+    await expect(page.getByTestId("planned-minutes")).toHaveText("2 godz.");
     await expect(page.getByTestId("completed-minutes")).toHaveText("0 min");
 
     // Completing a session moves the topic's progress (US-012).
     await page.getByTestId("mark-done").first().click();
-    await expect(page.getByTestId("flash-ok")).toContainText("Session marked done");
+    await expect(page.getByTestId("flash-ok")).toContainText("Oznaczono sesję jako zrobioną");
 
-    await expect(page.getByTestId("completed-minutes")).toHaveText("1 h");
-    await expect(page.getByTestId("planned-minutes")).toHaveText("1 h");
+    await expect(page.getByTestId("completed-minutes")).toHaveText("1 godz.");
+    await expect(page.getByTestId("planned-minutes")).toHaveText("1 godz.");
     await expect(page.getByTestId("progress-percent").first()).toHaveText("50");
   });
 
@@ -71,8 +71,8 @@ test.describe("planning a week", () => {
     await expect(page.getByTestId("session")).toHaveCount(2);
 
     await page.getByTestId("mark-done").first().click();
-    await expect(page.getByTestId("flash-ok")).toContainText("Session marked done");
-    await expect(page.getByTestId("completed-minutes")).toHaveText("1 h");
+    await expect(page.getByTestId("flash-ok")).toContainText("Oznaczono sesję jako zrobioną");
+    await expect(page.getByTestId("completed-minutes")).toHaveText("1 godz.");
 
     const done = page.locator('[data-testid="session"][data-status="done"]');
     const planned = page.locator('[data-testid="session"][data-status="planned"]');
@@ -88,8 +88,8 @@ test.describe("planning a week", () => {
     await expect(done).toHaveCount(1);
     await expect(planned).toHaveCount(1);
     await expect(page.getByTestId("session")).toHaveCount(2);
-    await expect(page.getByTestId("completed-minutes")).toHaveText("1 h");
-    await expect(page.getByTestId("planned-minutes")).toHaveText("1 h");
+    await expect(page.getByTestId("completed-minutes")).toHaveText("1 godz.");
+    await expect(page.getByTestId("planned-minutes")).toHaveText("1 godz.");
     await expect(page.getByTestId("progress-percent").first()).toHaveText("50");
   });
 
@@ -171,7 +171,7 @@ test.describe("managing topics", () => {
     await expect(page.getByTestId("topic-item")).toHaveCount(1);
 
     await page.getByTestId("delete-topic").first().click();
-    await expect(page.getByTestId("flash-ok")).toContainText("Topic deleted");
+    await expect(page.getByTestId("flash-ok")).toContainText("Usunięto temat");
     await expect(page.getByTestId("topics-empty")).toBeVisible();
   });
 
@@ -224,7 +224,7 @@ test.describe("isolation", () => {
     await addTopic(page, { title: "First learner topic", estimateMinutes: 60 });
     await expect(page.getByTestId("topic-item")).toHaveCount(1);
 
-    await page.getByRole("button", { name: /sign out/i }).click();
+    await page.getByRole("button", { name: /wyloguj/i }).click();
     await page.waitForURL((url) => !url.pathname.startsWith("/topics"));
 
     await registerAndSignIn(page);

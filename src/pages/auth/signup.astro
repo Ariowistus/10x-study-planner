@@ -7,11 +7,11 @@ export const prerender = false;
 const error = Astro.url.searchParams.get("error");
 ---
 
-<AuthLayout title="Create an account" intro="Your topics and your plan stay yours alone.">
+<AuthLayout title="Załóż konto" intro="Twoje tematy i Twój plan zostają wyłącznie Twoje.">
   <SignUpForm serverError={error} client:load />
 
   <p class="text-ink-muted mt-6 text-sm">
-    Already registered?
-    <a href="/auth/signin" class="text-brand font-medium underline underline-offset-4">Sign in</a>
+    Masz już konto?
+    <a href="/auth/signin" class="text-brand font-medium underline underline-offset-4">Zaloguj się</a>
   </p>
 </AuthLayout>

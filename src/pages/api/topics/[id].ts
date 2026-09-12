@@ -28,7 +28,7 @@ export const POST: APIRoute = async (context) => {
 
     if (values._action === "delete") {
       await deleteTopic(auth.db, topicId);
-      return redirectWith(context, "/topics", { ok: "Topic deleted" });
+      return redirectWith(context, "/topics", { ok: "Usunięto temat" });
     }
 
     const { _action, ...rest } = values;
@@ -36,7 +36,7 @@ export const POST: APIRoute = async (context) => {
 
     const patch = topicUpdateSchema.parse(rest);
     await updateTopic(auth.db, topicId, patch);
-    return redirectWith(context, "/topics", { ok: "Topic updated" });
+    return redirectWith(context, "/topics", { ok: "Zaktualizowano temat" });
   } catch (cause) {
     return redirectError(context, "/topics", describeFailure(cause).message);
   }

@@ -16,7 +16,7 @@ export const POST: APIRoute = async (context) => {
   try {
     const input = topicInputSchema.parse(await formValues(context.request));
     await createTopic(auth.db, auth.userId, input);
-    return redirectWith(context, "/topics", { ok: "Topic added" });
+    return redirectWith(context, "/topics", { ok: "Dodano temat" });
   } catch (cause) {
     return redirectError(context, "/topics", describeFailure(cause).message);
   }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const WEEKDAYS = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
+const WEEKDAYS_SHORT = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
 
 interface Props {
   initial: number[];
@@ -10,8 +11,8 @@ function formatHours(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   if (hours === 0) return `${minutes} min`;
-  if (minutes === 0) return `${hours} h`;
-  return `${hours} h ${minutes} min`;
+  if (minutes === 0) return `${hours} godz.`;
+  return `${hours} godz. ${minutes} min`;
 }
 
 /**
@@ -42,7 +43,9 @@ export default function AvailabilityEditor({ initial }: Props) {
 
           return (
             <label key={day} className="flex flex-col gap-1.5">
-              <span className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">{day.slice(0, 3)}</span>
+              <span className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">
+                {WEEKDAYS_SHORT[index]}
+              </span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -54,7 +57,7 @@ export default function AvailabilityEditor({ initial }: Props) {
                 onChange={(event) => {
                   update(index, event.target.value);
                 }}
-                aria-label={`${day} minutes`}
+                aria-label={`${day} — minuty`}
                 data-testid={`availability-${index}`}
                 className={`tnum focus:border-brand w-full rounded-[10px] border px-2.5 py-2 text-sm transition-colors focus:outline-none ${
                   free ? "border-line bg-sunken text-ink-faint" : "border-line bg-raised text-ink"
@@ -66,11 +69,11 @@ export default function AvailabilityEditor({ initial }: Props) {
       </div>
 
       <p className="text-ink-muted mt-4 text-sm">
-        {"That is "}
+        {"To razem "}
         <strong data-testid="availability-total" className="tnum text-ink font-semibold">
           {formatHours(total)}
         </strong>
-        {" a week. A day left at zero is never scheduled."}
+        {" tygodniowo. Dzień zostawiony na zerze nigdy nie jest planowany."}
       </p>
     </div>
   );

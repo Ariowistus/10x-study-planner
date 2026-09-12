@@ -20,7 +20,7 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -34,9 +34,9 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
           Study Planner
         </a>
 
-        <nav class="flex items-center gap-1" aria-label="Main">
+        <nav class="flex items-center gap-1" aria-label="Główna">
           <a href="/dashboard" class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a>
-          <a href="/topics" class:list={`${navBase} ${active === "topics" ? navOn : navOff}`}>Topics</a>
+          <a href="/topics" class:list={`${navBase} ${active === "topics" ? navOn : navOff}`}>Tematy</a>
         </nav>
 
         <div class="ml-auto flex items-center gap-3">
@@ -46,7 +46,7 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
               type="submit"
               class="border-line text-ink-muted hover:border-line-strong hover:text-ink rounded-[10px] border px-3 py-1.5 text-sm font-medium transition-colors"
             >
-              Sign out
+              Wyloguj się
             </button>
           </form>
         </div>

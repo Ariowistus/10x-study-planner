@@ -96,7 +96,7 @@ export async function registerAndSignIn(page: Page): Promise<string> {
   await fillControlled(page.locator("#email"), email);
   await fillControlled(page.locator("#password"), PASSWORD);
   await fillControlled(page.locator("#confirmPassword"), PASSWORD);
-  await page.getByRole("button", { name: /create account/i }).click();
+  await page.getByRole("button", { name: /załóż konto/i }).click();
   await expectToLeave(page, "/auth/signup", "Sign up");
 
   // Signing in explicitly keeps the test independent of whether sign-up
@@ -105,7 +105,7 @@ export async function registerAndSignIn(page: Page): Promise<string> {
   await waitForHydration(page);
   await fillControlled(page.locator("#email"), email);
   await fillControlled(page.locator("#password"), PASSWORD);
-  await page.getByRole("button", { name: /sign in/i }).click();
+  await page.getByRole("button", { name: /zaloguj/i }).click();
   await expectToLeave(page, "/auth/signin", "Sign in");
 
   await page.goto("/topics");
@@ -124,7 +124,7 @@ export async function setAvailability(page: Page, minutesPerDay: number[]): Prom
   }
 
   await page.getByTestId("save-availability").click();
-  await expect(page.getByTestId("flash-ok")).toContainText("Availability saved");
+  await expect(page.getByTestId("flash-ok")).toContainText("Zapisano dostępność");
 }
 
 export async function addTopic(
@@ -146,5 +146,5 @@ export async function addTopic(
   }
 
   await page.getByTestId("add-topic").click();
-  await expect(page.getByTestId("flash-ok")).toContainText("Topic added");
+  await expect(page.getByTestId("flash-ok")).toContainText("Dodano temat");
 }

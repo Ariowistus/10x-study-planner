@@ -19,11 +19,14 @@ for (const scheme of ["light", "dark"] as const) {
       await page.goto("/auth/signup");
       await page.screenshot({ path: `shots/${scheme}-signup.png` });
 
+      await page.goto("/auth/signin");
+      await page.screenshot({ path: `shots/${scheme}-signin.png` });
+
       await registerAndSignIn(page);
       await setAvailability(page, [60, 60, 0, 90, 0, 120, 45]);
-      await addTopic(page, { title: "Routing protocols", estimateMinutes: 180, priority: 4 });
-      await addTopic(page, { title: "Subnetting drills", estimateMinutes: 240, priority: 3 });
-      await addTopic(page, { title: "Access control lists", estimateMinutes: 120, priority: 5 });
+      await addTopic(page, { title: "Protokoły routingu", estimateMinutes: 180, priority: 4 });
+      await addTopic(page, { title: "Ćwiczenia z podsieci", estimateMinutes: 240, priority: 3 });
+      await addTopic(page, { title: "Listy kontroli dostępu", estimateMinutes: 120, priority: 5 });
 
       await page.screenshot({ path: `shots/${scheme}-topics.png`, fullPage: true });
 

@@ -13,13 +13,18 @@ const { user } = Astro.locals;
  * here is what they get after signing in.
  */
 const sampleWeek = [
-  { day: "Mon", date: "13", available: 60, sessions: [{ title: "Routing protocols", minutes: 60, done: true }] },
-  { day: "Tue", date: "14", available: 60, sessions: [{ title: "Routing protocols", minutes: 45, done: false }] },
-  { day: "Wed", date: "15", available: 0, sessions: [] },
-  { day: "Thu", date: "16", available: 90, sessions: [{ title: "Subnetting drills", minutes: 90, done: false }] },
-  { day: "Fri", date: "17", available: 0, sessions: [] },
-  { day: "Sat", date: "18", available: 120, sessions: [{ title: "Access control lists", minutes: 120, done: false }] },
-  { day: "Sun", date: "19", available: 45, sessions: [{ title: "Subnetting drills", minutes: 45, done: false }] },
+  { day: "pon.", date: "13", available: 60, sessions: [{ title: "Protokoły routingu", minutes: 60, done: true }] },
+  { day: "wt.", date: "14", available: 60, sessions: [{ title: "Protokoły routingu", minutes: 45, done: false }] },
+  { day: "śr.", date: "15", available: 0, sessions: [] },
+  { day: "czw.", date: "16", available: 90, sessions: [{ title: "Ćwiczenia z podsieci", minutes: 90, done: false }] },
+  { day: "pt.", date: "17", available: 0, sessions: [] },
+  {
+    day: "sob.",
+    date: "18",
+    available: 120,
+    sessions: [{ title: "Listy kontroli dostępu", minutes: 120, done: false }],
+  },
+  { day: "niedz.", date: "19", available: 45, sessions: [{ title: "Ćwiczenia z podsieci", minutes: 45, done: false }] },
 ];
 
 const primaryButton =
@@ -29,7 +34,7 @@ const secondaryButton =
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -37,7 +42,7 @@ const secondaryButton =
     <title>10x Study Planner</title>
     <meta
       name="description"
-      content="Turns a topic list, a deadline and a weekly time budget into a dated study plan, and rebuilds it from what you actually did."
+      content="Zamienia listę tematów, termin egzaminu i tygodniowy budżet czasu w datowany plan nauki i przelicza go na podstawie tego, co naprawdę zrobisz."
     />
   </head>
   <body class="bg-surface text-ink min-h-[100dvh]">
@@ -47,11 +52,11 @@ const secondaryButton =
         {
           user ? (
             <a href="/dashboard" class="text-brand text-sm font-medium underline underline-offset-4">
-              Open this week
+              Otwórz ten tydzień
             </a>
           ) : (
             <a href="/auth/signin" class="text-ink-muted hover:text-ink text-sm font-medium transition-colors">
-              Sign in
+              Zaloguj się
             </a>
           )
         }
@@ -64,28 +69,28 @@ const secondaryButton =
         <div class="grid gap-10 lg:grid-cols-12 lg:gap-16">
           <div class="lg:col-span-8">
             <h1 class="text-[34px] leading-[1.08] font-semibold tracking-tight sm:text-[44px] lg:text-5xl">
-              You know what to study.
-              <span class="text-ink-muted block">The hard part is when.</span>
+              Wiesz, czego się uczyć.
+              <span class="text-ink-muted block">Problem w tym, kiedy.</span>
             </h1>
 
             <p class="text-ink-muted mt-6 max-w-[52ch] text-lg">
-              Give it your topics, your deadline and the evenings you really have. It returns a dated week and rebuilds
-              it from what you actually did.
+              Podaj tematy, termin i wieczory, które naprawdę masz. Dostaniesz datowany tydzień, przeliczany na
+              podstawie tego, co faktycznie zrobisz.
             </p>
 
             <div class="mt-9 flex flex-wrap gap-3">
               {
                 user ? (
                   <a href="/dashboard" class:list={primaryButton}>
-                    Open this week
+                    Otwórz ten tydzień
                   </a>
                 ) : (
                   <>
                     <a href="/auth/signup" class:list={primaryButton}>
-                      Create an account
+                      Załóż konto
                     </a>
                     <a href="/auth/signin" class:list={secondaryButton}>
-                      Sign in
+                      Zaloguj się
                     </a>
                   </>
                 )
@@ -96,16 +101,16 @@ const secondaryButton =
           <div class="lg:col-span-4 lg:pt-3">
             <dl class="border-line grid grid-cols-3 gap-6 border-t pt-6 lg:grid-cols-1 lg:gap-7">
               <div>
-                <dt class="text-ink-faint text-[13px]">Respects</dt>
-                <dd class="mt-1 text-[15px] leading-snug">The minutes you declared, never more</dd>
+                <dt class="text-ink-faint text-[13px]">Respektuje</dt>
+                <dd class="mt-1 text-[15px] leading-snug">Minuty, które zadeklarowałeś, nigdy więcej</dd>
               </div>
               <div>
-                <dt class="text-ink-faint text-[13px]">Orders by</dt>
-                <dd class="mt-1 text-[15px] leading-snug">How soon a topic is actually due</dd>
+                <dt class="text-ink-faint text-[13px]">Porządkuje wg</dt>
+                <dd class="mt-1 text-[15px] leading-snug">Tego, jak blisko jest termin tematu</dd>
               </div>
               <div>
-                <dt class="text-ink-faint text-[13px]">Rebuilds from</dt>
-                <dd class="mt-1 text-[15px] leading-snug">The evenings you kept, not the plan</dd>
+                <dt class="text-ink-faint text-[13px]">Przelicza z</dt>
+                <dd class="mt-1 text-[15px] leading-snug">Wieczorów, które dotrzymałeś, nie z planu</dd>
               </div>
             </dl>
           </div>
@@ -116,8 +121,8 @@ const secondaryButton =
       <section class="border-line bg-sunken border-y">
         <div class="mx-auto max-w-5xl px-4 py-14">
           <div class="mb-7 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 class="text-2xl font-semibold tracking-tight">A week, as it comes out</h2>
-            <p class="tnum text-ink-faint text-sm">Example data, six hours across five evenings</p>
+            <h2 class="text-2xl font-semibold tracking-tight">Tydzień, tak jak wychodzi</h2>
+            <p class="tnum text-ink-faint text-sm">Przykładowe dane, sześć godzin w pięć wieczorów</p>
           </div>
 
           <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
@@ -141,7 +146,7 @@ const secondaryButton =
                     </div>
 
                     {day.sessions.length === 0 ? (
-                      <p class="text-ink-faint text-[12px]">Kept free</p>
+                      <p class="text-ink-faint text-[12px]">Dzień wolny</p>
                     ) : (
                       <ul class="flex flex-col gap-2">
                         {day.sessions.map((session) => (
@@ -156,7 +161,7 @@ const secondaryButton =
                                   : "border-line text-ink-faint border",
                               ]}
                             >
-                              {session.done ? "done" : "planned"}
+                              {session.done ? "zrobione" : "zaplanowane"}
                             </span>
                           </li>
                         ))}
@@ -173,32 +178,31 @@ const secondaryButton =
       <section class="mx-auto max-w-5xl px-4 py-16">
         <div class="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h2 class="text-2xl font-semibold tracking-tight">How it decides</h2>
+            <h2 class="text-2xl font-semibold tracking-tight">Jak podejmuje decyzję</h2>
             <p class="text-ink-muted mt-4 text-[17px] leading-relaxed">
-              Every topic is scored by the daily pace it would need to finish on time, weighted by how much it matters.
-              A deadline that is close therefore beats a topic that is merely important. Because that score falls as
-              work gets done, topics under similar pressure take turns instead of one of them swallowing the week.
+              Każdy temat dostaje wynik wyprowadzony z dziennego tempa, jakiego wymagałby, żeby skończyć na czas,
+              przemnożony przez to, jak bardzo jest ważny. Bliski termin wygrywa więc z tematem, który jest jedynie
+              ważny. A ponieważ wynik spada wraz z ubywaniem pracy, tematy pod podobną presją przeplatają się, zamiast
+              jednego pożerającego cały tydzień.
             </p>
           </div>
 
           <ul class="divide-line border-line flex flex-col divide-y border-t">
             <li class="py-4">
-              <p class="font-medium">A day is never overfilled</p>
+              <p class="font-medium">Dzień nigdy nie jest przepełniony</p>
               <p class="text-ink-muted mt-1 text-[15px]">
-                The minutes on any evening never exceed what you said you had.
+                Minuty w danym wieczorze nigdy nie przekraczają tego, co zadeklarowałeś.
               </p>
             </li>
             <li class="py-4">
-              <p class="font-medium">Big topics get split</p>
+              <p class="font-medium">Duże tematy są dzielone</p>
               <p class="text-ink-muted mt-1 text-[15px]">
-                Something larger than one evening is spread across several, not truncated.
+                Coś większego niż jeden wieczór rozkłada się na kilka, zamiast zostać ucięte.
               </p>
             </li>
             <li class="py-4">
-              <p class="font-medium">A missed evening is not a debt</p>
-              <p class="text-ink-muted mt-1 text-[15px]">
-                Skip a session and the work returns to the pool for the next plan.
-              </p>
+              <p class="font-medium">Opuszczony wieczór to nie dług</p>
+              <p class="text-ink-muted mt-1 text-[15px]">Pomiń sesję, a praca wraca do puli na następny plan.</p>
             </li>
           </ul>
         </div>
@@ -209,10 +213,10 @@ const secondaryButton =
           <section class="border-line border-t">
             <div class="mx-auto max-w-5xl px-4 py-16">
               <h2 class="max-w-[24ch] text-2xl font-semibold tracking-tight">
-                Start with three topics and the evenings you actually have.
+                Zacznij od trzech tematów i wieczorów, które naprawdę masz.
               </h2>
               <a href="/auth/signup" class:list={["mt-7", primaryButton]}>
-                Create an account
+                Załóż konto
               </a>
             </div>
           </section>
@@ -222,12 +226,12 @@ const secondaryButton =
 
     <footer class="border-line border-t">
       <div class="text-ink-faint mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm">
-        <span>Course project for 10xDevs 3.0</span>
+        <span>Projekt zaliczeniowy kursu 10xDevs 3.0</span>
         <a
           href="https://github.com/Ariowistus/10x-study-planner"
           class="hover:text-ink underline underline-offset-4 transition-colors"
         >
-          Source and design notes
+          Kod źródłowy i notatki projektowe
         </a>
       </div>
     </footer>

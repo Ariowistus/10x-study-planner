@@ -10,16 +10,16 @@ import { z } from "zod";
 
 const isoDate = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected a YYYY-MM-DD date")
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Not a valid calendar date");
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Oczekiwano daty w formacie RRRR-MM-DD")
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "To nie jest poprawna data kalendarzowa");
 
 export const topicInputSchema = z.object({
-  title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
+  title: z.string().trim().min(1, "Tytuł jest wymagany").max(200, "Tytuł jest za długi"),
   estimatedMinutes: z.coerce
     .number()
-    .int("Estimate must be a whole number of minutes")
-    .min(1, "Estimate must be at least one minute")
-    .max(100_000, "Estimate is unrealistically large"),
+    .int("Szacowany czas musi być pełną liczbą minut")
+    .min(1, "Szacowany czas to co najmniej jedna minuta")
+    .max(100_000, "Szacowany czas jest nierealistycznie duży"),
   priority: z.coerce.number().int().min(1).max(5),
   deadline: z
     .union([isoDate, z.literal("")])
@@ -33,8 +33,8 @@ export const topicUpdateSchema = topicInputSchema.partial().extend({
 
 export const availabilitySchema = z.object({
   minutes: z
-    .array(z.coerce.number().int().min(0, "Minutes cannot be negative").max(1440, "A day has 1440 minutes"))
-    .length(7, "Availability must cover all seven weekdays"),
+    .array(z.coerce.number().int().min(0, "Minuty nie mogą być ujemne").max(1440, "Doba ma 1440 minut"))
+    .length(7, "Dostępność musi obejmować wszystkie siedem dni tygodnia"),
 });
 
 export const generatePlanSchema = z.object({

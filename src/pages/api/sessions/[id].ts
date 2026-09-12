@@ -6,6 +6,13 @@ import { sessionStatusSchema } from "@/lib/validation";
 
 export const prerender = false;
 
+/** How each stored status reads back to the learner. */
+const SESSION_STATUS_PL: Record<"planned" | "done" | "skipped", string> = {
+  planned: "zaplanowaną",
+  done: "zrobioną",
+  skipped: "pominiętą",
+};
+
 /**
  * Marks a session done, skipped, or back to planned (FR-005).
  *
@@ -24,14 +31,14 @@ export const POST: APIRoute = async (context) => {
   const back = week ? `/dashboard?week=${encodeURIComponent(week)}` : "/dashboard";
 
   if (!sessionId) {
-    return redirectError(context, back, "Missing session id");
+    return redirectError(context, back, "Brak identyfikatora sesji");
   }
 
   try {
     const { status } = sessionStatusSchema.parse(values);
     await setSessionStatus(auth.db, sessionId, status);
 
-    const params: Record<string, string> = { ok: `Session marked ${status}` };
+    const params: Record<string, string> = { ok: `Oznaczono sesję jako ${SESSION_STATUS_PL[status]}` };
     if (week) {
       params.week = week;
     }
