@@ -5,6 +5,12 @@ const session = { id: "abc", topicTitle: "Sieci", date: "2026-12-31", minutes: 6
 const stamp = "20260913T120000Z";
 
 describe("calendar export", () => {
+  it("exports scheduled hours without UTC shifts, including midnight on New Year's Eve", () => {
+    const result = exportCalendar([{ ...session, startTime: "23:00" }], stamp);
+    expect(result).toContain("DTSTART:20261231T230000\r\nDTEND:20270101T000000");
+    expect(result).toContain("TRANSP:OPAQUE");
+    expect(exportCalendar([{ ...session, startTime: "09:00", minutes: 90 }], stamp)).toContain("DTEND:20261231T103000");
+  });
   it("preserves dates across a year boundary without inventing a timezone or hour", () => {
     const result = exportCalendar([session], stamp);
     expect(result).toContain("DTSTART;VALUE=DATE:20261231\r\nDTEND;VALUE=DATE:20270101");

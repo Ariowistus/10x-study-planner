@@ -101,6 +101,8 @@ jobs:
 
       - name: Run end-to-end tests
         run: npm run test:e2e
+        env:
+          E2E_SHOTS: "1"
 
       - name: Upload Playwright report
         if: always()
@@ -108,6 +110,14 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 7
+
+      - name: Upload workspace screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: workspace-screenshots
+          path: shots/
           retention-days: 7
 
       - name: Stop Supabase

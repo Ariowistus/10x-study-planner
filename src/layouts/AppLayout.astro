@@ -4,7 +4,7 @@ import "../styles/global.css";
 interface Props {
   title: string;
   subtitle?: string;
-  active: "dashboard" | "calendar" | "topics";
+  active: "dashboard" | "calendar";
 }
 
 const { title, subtitle, active } = Astro.props;
@@ -30,25 +30,20 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
   <body class="bg-surface text-ink min-h-[100dvh]">
     <header class="border-line bg-surface/85 sticky top-0 z-30 border-b backdrop-blur-sm">
       <div class="app-nav mx-auto flex min-h-16 max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
-        <a href="/calendar" class="text-ink text-[15px] font-semibold tracking-tight whitespace-nowrap">
+        <a href="/dashboard" class="text-ink text-[15px] font-semibold tracking-tight whitespace-nowrap">
           Study Planner
         </a>
 
         <nav class="order-3 flex w-full items-center gap-1 sm:order-none sm:w-auto" aria-label="Główna">
           <a
+            href="/dashboard"
+            aria-current={active === "dashboard" ? "page" : undefined}
+            class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Realizacja</a
+          >
+          <a
             href="/calendar"
             aria-current={active === "calendar" ? "page" : undefined}
             class:list={`${navBase} ${active === "calendar" ? navOn : navOff}`}>Kalendarz</a
-          >
-          <a
-            href="/dashboard"
-            aria-current={active === "dashboard" ? "page" : undefined}
-            class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a
-          >
-          <a
-            href="/topics"
-            aria-current={active === "topics" ? "page" : undefined}
-            class:list={`${navBase} ${active === "topics" ? navOn : navOff}`}>Tematy</a
           >
         </nav>
 

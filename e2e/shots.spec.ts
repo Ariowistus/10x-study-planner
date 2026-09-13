@@ -1,50 +1,25 @@
-import { test } from "@playwright/test";
-
-import { addTopic, nextWeekMonday, registerAndSignIn, setAvailability } from "./helpers";
-
-/**
- * Not an assertion suite. Renders each surface in both colour schemes so the
- * result can actually be looked at rather than assumed.
- *
- * Run with: npx playwright test shots.spec.ts
- */
+// Optional visual inspection tool; the functional specs carry assertions.
+import { test } from "./authenticated";
+import { addEntry, nextWeekMonday } from "./helpers";
 for (const scheme of ["light", "dark"] as const) {
-  test.describe(`${scheme} mode`, () => {
-    test.use({ colorScheme: scheme, reducedMotion: "reduce", viewport: { width: 1280, height: 900 } });
-
-    test(`captures every surface in ${scheme}`, async ({ page }) => {
-      await page.goto("/");
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-landing.png`, fullPage: true });
-
-      await page.goto("/auth/signup");
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-signup.png` });
-
-      await page.goto("/auth/signin");
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-signin.png` });
-
-      await registerAndSignIn(page);
-      await setAvailability(page, [60, 60, 0, 90, 0, 120, 45]);
-      await addTopic(page, { title: "Protokoły routingu", estimateMinutes: 180, priority: 4 });
-      await addTopic(page, { title: "Ćwiczenia z podsieci", estimateMinutes: 240, priority: 3 });
-      await addTopic(page, { title: "Listy kontroli dostępu", estimateMinutes: 120, priority: 5 });
-
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-topics.png`, fullPage: true });
-
-      await page.goto(`/dashboard?week=${nextWeekMonday()}`);
-      await page.getByTestId("generate-plan").click();
-      await page.getByTestId("mark-done").first().click();
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-dashboard.png`, fullPage: true });
-
-      await page.goto(`/calendar?month=${nextWeekMonday()}`);
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-calendar.png`, fullPage: true });
-
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.goto(`/dashboard?week=${nextWeekMonday()}`);
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-dashboard-mobile.png`, fullPage: true });
-      await page.goto("/topics");
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-topics-mobile.png`, fullPage: true });
-      await page.goto(`/calendar?month=${nextWeekMonday()}`);
-      await page.screenshot({ animations: "disabled", path: `shots/${scheme}-calendar-mobile.png`, fullPage: true });
-    });
+  test("captures the two-view workspace in " + scheme, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+    const date = nextWeekMonday();
+    await addEntry(page, { title: "Angielski · konwersacje", date, time: "09:00" });
+    await addEntry(page, { title: "Angielski · konwersacje", date, time: "14:00", minutes: 45 });
+    await addEntry(page, { title: "Matematyka · zadania egzaminacyjne", date, time: "17:00", minutes: 90 });
+    await page.goto("/dashboard?week=" + date);
+    await page.getByTestId("mark-done").first().click();
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const route of ["dashboard", "calendar"]) {
+        await page.goto("/" + route + (route === "calendar" ? "?month=" + date + "&day=" + date : "?week=" + date));
+        await page.screenshot({
+          path: "shots/" + scheme + "-" + route + "-" + String(width) + ".png",
+          fullPage: true,
+          animations: "disabled",
+        });
+      }
+    }
   });
 }

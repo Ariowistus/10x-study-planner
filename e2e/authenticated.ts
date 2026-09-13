@@ -19,10 +19,15 @@ export const test = base.extend({
 // Remove this account's study records even after a failed assertion. Test-only
 // auth accounts remain in hosted Supabase; CI discards its whole local stack.
 test.afterEach(async ({ page }) => {
-  await page.goto("/topics");
-  const remove = page.getByTestId("delete-topic");
-  while (await remove.count()) {
-    await remove.first().click();
-    await expect(page.getByRole("status")).toContainText("Usunięto temat");
+  const response = await page.request.get("/api/topics");
+  expect(response.ok()).toBe(true);
+  const topics = (await response.json()) as { id: string }[];
+  for (const topic of topics) {
+    const deleted = await page.request.post(`/api/topics/${topic.id}`, {
+      form: { _action: "delete" },
+      headers: { origin: new URL(response.url()).origin },
+      maxRedirects: 0,
+    });
+    expect(deleted.headers().location).toContain("ok=");
   }
 });

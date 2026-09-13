@@ -4,407 +4,265 @@ import FocusSession from "@/components/FocusSession";
 import { createClient } from "@/lib/supabase";
 import { currentWeekStart, loadWeekView, todayIso, type WeekView } from "@/lib/planning";
 import { addDays, isIsoDate, startOfWeek } from "@/domain/date";
-
+import { summarizeAgenda, timeRange } from "@/domain/agenda";
 export const prerender = false;
-
-// Unauthenticated requests never reach this page: `/dashboard` is listed in
-// PROTECTED_ROUTES and the middleware redirects them to sign-in.
-
 const requestedWeek = Astro.url.searchParams.get("week");
 const weekStart = isIsoDate(requestedWeek) ? startOfWeek(requestedWeek) : currentWeekStart();
-
 const db = createClient(Astro.request.headers, Astro.cookies);
-
 let week: WeekView | null = null;
 let loadError: string | null = null;
-
-if (db) {
-  try {
-    week = await loadWeekView(db, weekStart);
-  } catch (cause) {
-    loadError = cause instanceof Error ? cause.message : "Nie udało się wczytać planu";
-  }
-} else {
-  loadError = "Supabase nie jest skonfigurowany";
+try {
+  if (db) week = await loadWeekView(db, weekStart);
+  else loadError = "Supabase nie jest skonfigurowany";
+} catch {
+  loadError = "Nie udało się wczytać zajęć. Odśwież stronę.";
 }
-
 const today = todayIso();
-const nextSession = week?.days
-  .flatMap((day) => day.sessions)
-  .find((session) => session.status === "planned" && session.date >= today);
-const weeklyBudget = week?.availability.reduce((sum, value) => sum + value, 0) ?? 0;
-const remainingWork = week?.topics.reduce((sum, entry) => sum + entry.remainingMinutes, 0) ?? 0;
-const completedCount =
-  week?.days.flatMap((day) => day.sessions).filter((session) => session.status === "done").length ?? 0;
+const entries = week?.days.flatMap((day) => day.sessions) ?? [];
+const nextSession = entries.find((entry) => entry.status === "planned" && entry.date >= today);
+const groups = summarizeAgenda(entries);
+const doneCount = entries.filter((entry) => entry.status === "done").length;
+const percent = entries.length ? Math.round((doneCount / entries.length) * 100) : 0;
+const q = (Astro.url.searchParams.get("q") ?? "").trim();
+const filter = Astro.url.searchParams.get("filter") ?? "all";
 const dayNames = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
-const dayShort = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
-
-function formatMinutes(total: number): string {
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
-  if (hours === 0) return `${minutes} min`;
-  if (minutes === 0) return `${hours} godz.`;
-  return `${hours} godz. ${minutes} min`;
-}
-
-function dayOfMonth(iso: string): string {
-  return iso.slice(8);
-}
-
-const previousWeek = addDays(weekStart, -7);
-const nextWeek = addDays(weekStart, 7);
-
-const statusLabel: Record<string, string> = {
-  planned: "zaplanowane",
-  done: "zrobione",
-  skipped: "pominięte",
-};
-
-const statusPill: Record<string, string> = {
-  planned: "border border-line text-ink-faint",
-  done: "border border-brand-line bg-brand-soft text-brand",
-  skipped: "border border-line bg-sunken text-ink-faint line-through",
-};
-
-const ghostButton =
-  "rounded-[10px] border border-line px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink";
-const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transition-colors active:translate-y-px";
+const visible = (session: (typeof entries)[number]) =>
+  session.topicTitle.toLocaleLowerCase("pl").includes(q.toLocaleLowerCase("pl")) &&
+  (filter === "done" ? session.status === "done" : filter === "planned" ? session.status === "planned" : true);
+const visibleCount = entries.filter(visible).length;
+const formatMinutes = (n: number) =>
+  n < 60 ? String(n) + " min" : String(Math.floor(n / 60)) + " godz." + (n % 60 ? " " + String(n % 60) + " min" : "");
 ---
 
-<AppLayout title="Ten tydzień" subtitle="Czego się uczyć, którego wieczoru i jak długo." active="dashboard">
+<AppLayout title="Realizacja" subtitle="Twoje zajęcia, jedna lista. Odhacz to, co już za Tobą." active="dashboard">
   {
     loadError && (
-      <p class="border-danger-line bg-danger-soft text-danger mb-8 rounded-[10px] border px-4 py-3 text-sm">
+      <p role="alert" class="empty-state">
         {loadError}
       </p>
     )
   }
-
   {
     week && (
       <>
-        <div class="study-overview mb-8">
-          {nextSession ? (
-            <FocusSession
-              client:load
-              id={nextSession.id}
-              title={nextSession.topicTitle}
-              date={nextSession.date}
-              minutes={nextSession.minutes}
-              weekStart={week.weekStart}
-            />
-          ) : (
-            <section class="focus-panel">
-              <div>
-                <p class="text-brand text-sm font-medium">Miejsce na Twój następny krok</p>
-                <h2 class="mt-3 max-w-lg text-3xl font-semibold tracking-tight">
-                  Dobry plan zaczyna się od jednego tematu.
-                </h2>
-                <p class="text-ink-muted mt-4 max-w-lg text-sm leading-relaxed">
-                  {week.hasPlan
-                    ? "W tym tygodniu nie ma już nadchodzących sesji. Sprawdź postęp lub zaplanuj następny tydzień."
-                    : "Dodaj to, czego chcesz się nauczyć, ustaw dostępny czas i wygeneruj swój tydzień poniżej."}
+        <div class="page-toolbar">
+          <div>
+            <>
+              <p class="text-ink-muted text-sm">Wybrany tydzień</p>
+              <p class="tnum mt-1 font-medium" data-testid="week-range">
+                {week.weekStart} – {week.weekEnd}
+              </p>
+            </>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <a
+              class="action-secondary"
+              href={"/dashboard?week=" + addDays(weekStart, -7)}
+              aria-label="Poprzedni tydzień"
+            >
+              ←
+            </a>
+            <a class="action-secondary" href="/dashboard">
+              Ten tydzień
+            </a>
+            <a class="action-secondary" href={"/dashboard?week=" + addDays(weekStart, 7)} aria-label="Następny tydzień">
+              →
+            </a>
+            <a
+              class="action-primary"
+              href={
+                "/calendar?month=" +
+                weekStart +
+                "&day=" +
+                (today >= week.weekStart && today <= week.weekEnd ? today : weekStart)
+              }
+            >
+              + Dodaj w kalendarzu
+            </a>
+          </div>
+        </div>
+        <section class="completion-strip" aria-label="Podsumowanie tygodnia">
+          <div class="completion-score">
+            <>
+              <strong class="tnum">
+                {doneCount}
+                <span> / {entries.length}</span>
+              </strong>
+              <p>ukończonych zajęć</p>
+            </>
+          </div>
+          <div class="completion-meter">
+            <>
+              <div class="completion-track">
+                <div style={"width:" + String(percent) + "%"} />
+              </div>
+              <p>
+                {entries.length
+                  ? String(percent) + "% tygodniowej listy za Tobą"
+                  : "Pierwsze zajęcie dodasz w kalendarzu"}
+              </p>
+            </>
+          </div>
+          <div>
+            <>
+              <strong class="tnum" data-testid="completed-minutes">
+                {formatMinutes(week.completedMinutes)}
+              </strong>
+              <p>zrealizowane</p>
+            </>
+          </div>
+          <div>
+            <>
+              <strong class="tnum" data-testid="planned-minutes">
+                {formatMinutes(week.plannedMinutes)}
+              </strong>
+              <p>do zrobienia</p>
+            </>
+          </div>
+        </section>
+        <div class="realization-layout">
+          <section aria-label="Lista zajęć">
+            <form method="GET" role="search" class="agenda-search">
+              <input type="hidden" name="week" value={weekStart} />
+              <input type="search" name="q" value={q} placeholder="Szukaj zajęcia…" aria-label="Szukaj zajęcia" />
+              <select name="filter" aria-label="Status zajęć">
+                <>
+                  <option value="all" selected={filter === "all"}>
+                    Wszystkie
+                  </option>
+                  <option value="planned" selected={filter === "planned"}>
+                    Do zrobienia
+                  </option>
+                  <option value="done" selected={filter === "done"}>
+                    Zrobione
+                  </option>
+                </>
+              </select>
+              <button class="action-secondary">Filtruj</button>
+            </form>
+            {visibleCount === 0 && (
+              <div class="empty-state" data-testid="plan-empty">
+                <h2>{entries.length ? "Brak pasujących zajęć" : "Tu pojawi się Twoja lista"}</h2>
+                <p>
+                  {entries.length
+                    ? "Zmień nazwę lub filtr, żeby zobaczyć pozostałe zajęcia."
+                    : "Wybierz dzień w kalendarzu i wpisz, co chcesz zrobić. Zajęcie od razu pojawi się tutaj."}
                 </p>
-                <a href={week.hasPlan ? `/dashboard?week=${nextWeek}` : "/topics"} class="focus-complete mt-5">
-                  {week.hasPlan ? "Zaplanuj kolejny tydzień" : "Dodaj tematy i dostępność"}
+                <a
+                  class="action-primary mt-4"
+                  href={
+                    entries.length
+                      ? "/dashboard?week=" + weekStart
+                      : "/calendar?month=" + weekStart + "&day=" + weekStart
+                  }
+                >
+                  {entries.length ? "Wyczyść filtry" : "Otwórz kalendarz"}
                 </a>
               </div>
-            </section>
-          )}
-          <aside class="week-summary" aria-label="Podsumowanie tygodnia">
-            <p class="text-ink-muted text-sm font-medium">Twój rytm nauki</p>
-            <p class="tnum mt-3 text-4xl font-semibold tracking-tight">{formatMinutes(week.completedMinutes)}</p>
-            <p class="text-ink-faint mt-1 text-xs">ukończona nauka w wybranym tygodniu</p>
-            <dl class="mt-6 space-y-3 text-sm">
-              <div class="flex justify-between gap-3">
-                <>
-                  <dt class="text-ink-muted">Ukończone sesje</dt>
-                  <dd class="tnum font-medium">{completedCount}</dd>
-                </>
-              </div>
-              <div class="flex justify-between gap-3">
-                <>
-                  <dt class="text-ink-muted">Budżet tygodnia</dt>
-                  <dd class="tnum font-medium">{formatMinutes(weeklyBudget)}</dd>
-                </>
-              </div>
-              <div class="flex justify-between gap-3">
-                <>
-                  <dt class="text-ink-muted">Do końca tematów</dt>
-                  <dd class="tnum font-medium">{formatMinutes(remainingWork)}</dd>
-                </>
-              </div>
-            </dl>
-          </aside>
-        </div>
-        <section class="border-line mb-10 flex flex-wrap items-end justify-between gap-6 border-b pb-6">
-          <div>
-            <p class="text-ink-faint text-[13px]">Tydzień</p>
-            <p data-testid="week-range" class="tnum mt-0.5 text-lg font-medium tracking-tight">
-              {week.weekStart} – {week.weekEnd}
-            </p>
-            <p class="tnum text-ink-muted mt-2 text-sm">
-              <span data-testid="completed-minutes" class="text-brand font-medium">
-                {formatMinutes(week.completedMinutes)}
-              </span>
-              {" zrobione, "}
-              <span data-testid="planned-minutes" class="text-ink font-medium">
-                {formatMinutes(week.plannedMinutes)}
-              </span>
-              {" przed Tobą"}
-            </p>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            {weekStart !== currentWeekStart() && (
-              <a href="/dashboard" class:list={ghostButton}>
-                Bieżący tydzień
-              </a>
             )}
-            <a href={`/dashboard?week=${previousWeek}`} class:list={ghostButton}>
-              Poprzedni
-            </a>
-            <a href={`/dashboard?week=${nextWeek}`} class:list={ghostButton}>
-              Następny
-            </a>
-            <form method="POST" action="/api/plan/generate">
-              <input type="hidden" name="weekStart" value={week.weekStart} />
-              <button
-                type="submit"
-                data-testid="generate-plan"
-                class="bg-brand text-brand-contrast hover:bg-brand-hover rounded-[10px] px-4 py-2 text-sm font-medium transition-colors active:translate-y-px"
-              >
-                {week.hasPlan ? "Przelicz plan" : "Wygeneruj plan"}
-              </button>
-            </form>
-          </div>
-        </section>
-
-        {week.plannedMinutes > 0 && (
-          <div class="mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <h2 class="font-semibold">Rozkład tygodnia</h2>
-            <a
-              href={`/api/plan/export?week=${week.weekStart}`}
-              class="text-brand font-medium underline underline-offset-4"
-              title="Pobiera plik ICS. Sesje są wydarzeniami całodniowymi z czasem nauki w tytule."
-            >
-              Eksport do kalendarza (.ics)
-            </a>
-          </div>
-        )}
-
-        {!week.hasPlan && (
-          <p
-            data-testid="plan-empty"
-            class="border-line-strong bg-raised text-ink-muted mb-10 rounded-[10px] border border-dashed px-5 py-8 text-center text-[15px]"
-          >
-            Na ten tydzień nie ma jeszcze nic zaplanowanego. Dodaj tematy i dostępne minuty na stronie
-            <a href="/topics" class="text-brand mx-1 font-medium underline underline-offset-2">
-              Tematy
-            </a>
-            , a potem wygeneruj plan.
-          </p>
-        )}
-
-        <section class="week-grid mb-12 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-7">
-          {week.days.map((day, index) => {
-            const isToday = day.date === today;
-            const isPast = day.date < today;
-            const used =
-              day.availableMinutes === 0
-                ? 0
-                : Math.min(100, Math.round((day.totalMinutes / day.availableMinutes) * 100));
-
-            return (
-              <article
-                data-testid="day-card"
-                data-date={day.date}
-                class:list={[
-                  "flex flex-col rounded-[10px] border p-3",
-                  isToday ? "border-brand-line bg-brand-soft" : "border-line bg-raised",
-                  isPast && !isToday ? "past-day" : "",
-                ]}
-              >
-                <header class="mb-3 flex items-baseline justify-between gap-1">
-                  <h2 class="text-[13px] font-semibold tracking-tight" aria-label={dayNames[index]}>
-                    {dayShort[index]}
-                  </h2>
-                  <span class="tnum text-ink-faint text-[11px]">{dayOfMonth(day.date)}</span>
-                </header>
-
-                {/* The usage line doubles as the control for the evening's budget: open
-                    it and set the minutes without leaving the week. A details element
-                    keeps that working with no client JavaScript. */}
-                <details class="group/day mb-3">
-                  <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                    <div class="bg-sunken h-1 w-full overflow-hidden rounded-full">
-                      <div class="bg-brand h-full rounded-full" style={`width: ${used}%`} />
-                    </div>
-                    <p class="tnum text-ink-faint group-hover/day:text-ink-muted mt-1.5 text-[11px] transition-colors">
-                      <span data-testid="day-total">{day.totalMinutes}</span>
-                      {` / ${day.availableMinutes} min`}
-                      <span class="ml-1 underline underline-offset-2 opacity-0 transition-opacity group-open/day:hidden group-hover/day:opacity-100">
-                        zmień
-                      </span>
-                    </p>
-                  </summary>
-
-                  <form method="POST" action="/api/availability" class="mt-2 flex items-center gap-1">
-                    <input type="hidden" name="weekday" value={index} />
-                    <input type="hidden" name="week" value={week.weekStart} />
-                    <input
-                      type="number"
-                      name="minutes"
-                      value={day.availableMinutes}
-                      min="0"
-                      max="1440"
-                      step="1"
-                      aria-label={`${dayNames[index]} — dostępne minuty`}
-                      data-testid={`day-minutes-${index}`}
-                      class="tnum border-line bg-raised text-ink focus:border-brand w-full min-w-0 rounded-[10px] border px-2 py-1 text-[11px] transition-colors focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      data-testid={`save-day-${index}`}
-                      class="border-brand-line text-brand hover:bg-brand-soft shrink-0 rounded-[10px] border px-2 py-1 text-[11px] font-medium transition-colors active:translate-y-px"
-                    >
-                      OK
-                    </button>
-                  </form>
-                </details>
-
-                {day.sessions.length === 0 ? (
-                  <p class="text-ink-faint text-[12px]">
-                    {day.availableMinutes === 0 ? "Dzień wolny" : "Nic nie zaplanowano"}
-                  </p>
-                ) : (
-                  <ul class="flex flex-col gap-2">
-                    {day.sessions.map((session) => (
-                      <li
-                        data-testid="session"
-                        data-status={session.status}
-                        class="border-line border-t pt-2 first:border-t-0 first:pt-0"
-                      >
-                        <p class="text-[13px] leading-snug font-medium">{session.topicTitle}</p>
-                        <p class="tnum text-ink-faint mt-0.5 text-[11px]">{session.minutes} min</p>
-
-                        <span
-                          class:list={[
-                            "mt-1.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                            statusPill[session.status],
-                          ]}
-                        >
-                          {statusLabel[session.status]}
+            {week.days.map(
+              (day, index) =>
+                day.sessions.some(visible) && (
+                  <section class="agenda-day" data-testid="day-card" data-date={day.date}>
+                    <header>
+                      <h2>
+                        {dayNames[index]}{" "}
+                        <span class="tnum">
+                          {day.date.slice(8)}.{day.date.slice(5, 7)}
                         </span>
-
-                        <div class="mt-2 flex flex-wrap gap-1">
-                          {session.status !== "done" && (
-                            <form method="POST" action={`/api/sessions/${session.id}`}>
-                              <input type="hidden" name="status" value="done" />
-                              <input type="hidden" name="week" value={week.weekStart} />
-                              <button
-                                type="submit"
-                                data-testid="mark-done"
-                                class:list={[tinyButton, "border-brand-line text-brand hover:bg-brand-soft"]}
-                              >
-                                Zrobione
-                              </button>
-                            </form>
-                          )}
-                          {session.status !== "skipped" && (
-                            <form method="POST" action={`/api/sessions/${session.id}`}>
-                              <input type="hidden" name="status" value="skipped" />
-                              <input type="hidden" name="week" value={week.weekStart} />
-                              <button
-                                type="submit"
-                                data-testid="mark-skipped"
-                                class:list={[tinyButton, "border-line text-ink-muted hover:bg-sunken hover:text-ink"]}
-                              >
-                                Pomiń
-                              </button>
-                            </form>
-                          )}
-                          {session.status !== "planned" && (
-                            <form method="POST" action={`/api/sessions/${session.id}`}>
-                              <input type="hidden" name="status" value="planned" />
-                              <input type="hidden" name="week" value={week.weekStart} />
-                              <button
-                                type="submit"
-                                data-testid="mark-planned"
-                                class:list={[tinyButton, "border-line text-ink-muted hover:bg-sunken hover:text-ink"]}
-                              >
-                                Cofnij
-                              </button>
-                            </form>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            );
-          })}
-        </section>
-
-        <section>
-          <h2 class="mb-5 text-lg font-semibold tracking-tight">Postęp tematów</h2>
-
-          {week.topics.length === 0 ? (
-            <p class="text-ink-muted text-[15px]">
-              Nie masz jeszcze tematów. Dodaj je na stronie
-              <a href="/topics" class="text-brand mx-1 font-medium underline underline-offset-2">
-                Tematy
-              </a>
-              .
-            </p>
-          ) : (
-            <ul data-testid="progress-list" class="flex flex-col gap-5">
-              {week.topics.map((entry) => (
-                <li data-testid="progress-item" data-topic-title={entry.topic.title}>
-                  <div class="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <span class="text-[15px] font-medium">{entry.topic.title}</span>
-                    <span class="tnum text-ink-faint flex items-baseline gap-3 text-[13px]">
-                      {entry.topic.completedMinutes}
-                      {` z ${entry.topic.estimatedMinutes} min, `}
-                      <span data-testid="progress-percent" class="text-ink-muted font-medium">
-                        {entry.percentComplete}
-                      </span>
-                      {"%"}
-                      <form method="POST" action={`/api/topics/${entry.topic.id}`} class="inline">
-                        <input type="hidden" name="_action" value="delete" />
-                        <input type="hidden" name="week" value={week.weekStart} />
-                        <button
-                          type="submit"
-                          data-testid="delete-topic-from-plan"
-                          title="Usuwa temat i wszystkie jego sesje"
-                          class="text-ink-faint hover:text-danger text-[12px] underline underline-offset-2 transition-colors"
+                      </h2>
+                      {day.date === today && <span class="today-label">Dzisiaj</span>}
+                    </header>
+                    <ul>
+                      {day.sessions.filter(visible).map((session) => (
+                        <li
+                          class:list={["agenda-row", session.status === "done" && "is-done"]}
+                          data-testid="session"
+                          data-status={session.status}
                         >
-                          Usuń
-                        </button>
-                      </form>
+                          <form method="POST" action={"/api/sessions/" + session.id}>
+                            <input type="hidden" name="week" value={weekStart} />
+                            <input type="hidden" name="status" value={session.status === "done" ? "planned" : "done"} />
+                            <button
+                              type="submit"
+                              class="completion-check"
+                              aria-label={
+                                (session.status === "done" ? "Cofnij ukończenie: " : "Oznacz jako zrobione: ") +
+                                session.topicTitle
+                              }
+                              aria-pressed={session.status === "done"}
+                              data-testid={session.status === "done" ? "mark-planned" : "mark-done"}
+                            >
+                              {session.status === "done" ? "✓" : ""}
+                            </button>
+                          </form>
+                          <div class="agenda-copy">
+                            <h3>{session.topicTitle}</h3>
+                            <p class="tnum">
+                              {timeRange(session.startTime, session.minutes)} · {session.minutes} min
+                              {session.status === "skipped" && " · pominięte"}
+                            </p>
+                          </div>
+                          <a
+                            class="agenda-edit"
+                            href={"/calendar?month=" + session.date + "&day=" + session.date + "#entry-" + session.id}
+                          >
+                            Szczegóły
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ),
+            )}
+          </section>
+          <aside class="topic-summary" aria-label="Realizacja według zajęć">
+            <>
+              <h2>W tym tygodniu</h2>
+              <p class="text-ink-muted mt-1 mb-6 text-sm">Zajęcia o tej samej nazwie liczymy razem.</p>
+            </>
+            <ul data-testid="progress-list">
+              {groups.map((group) => (
+                <li data-testid="progress-item" data-topic-title={group.title}>
+                  <div class="flex justify-between gap-3">
+                    <h3>{group.title}</h3>
+                    <span class="tnum">
+                      <span data-testid="progress-percent">{group.percent}</span>%
                     </span>
                   </div>
-                  <div class="bg-sunken h-1.5 w-full overflow-hidden rounded-full">
-                    <div class="bg-brand h-full rounded-full" style={`width: ${entry.percentComplete}%`} />
+                  <div class="completion-track my-3">
+                    <div style={"width:" + String(group.percent) + "%"} />
                   </div>
+                  <p class="text-ink-muted text-xs">
+                    {group.completed} z {group.count} zajęć · {group.done} z {group.total} min
+                  </p>
                 </li>
               ))}
             </ul>
-          )}
-        </section>
+            {!groups.length && <p class="text-ink-muted text-sm">Podsumowanie pojawi się po dodaniu zajęć.</p>}
+            {week.plannedMinutes > 0 && (
+              <a class="action-secondary mt-6" href={"/api/plan/export?week=" + weekStart}>
+                Eksport do kalendarza (.ics)
+              </a>
+            )}
+          </aside>
+        </div>
+        {nextSession && (
+          <details class="focus-disclosure">
+            <summary>Minutnik skupienia · {nextSession.topicTitle}</summary>
+            <div class="mt-4">
+              <FocusSession
+                client:load
+                id={nextSession.id}
+                title={nextSession.topicTitle}
+                date={nextSession.date}
+                minutes={nextSession.minutes}
+                weekStart={weekStart}
+              />
+            </div>
+          </details>
+        )}
       </>
     )
   }
 </AppLayout>
-
-<script>
-  // The day-card minute fields open with a value already in them, so clicking in
-  // and typing would append to it. Selecting on focus makes the existing value a
-  // suggestion. The form posts identically without this script.
-  document.querySelectorAll("input[type=number]").forEach((field) => {
-    field.addEventListener("focus", () => {
-      (field as HTMLInputElement).select();
-    });
-  });
-</script>

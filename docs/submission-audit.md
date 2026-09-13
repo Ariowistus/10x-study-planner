@@ -6,6 +6,24 @@ Wydanie z 13 września obejmuje opisane poniżej poprawki. Publikacja odbywa si�
 przez osobny workflow po pozytywnym CI. Aktualny stan i identyfikator wdrożonego
 commitu są dostępne w [historii wdrożeń](https://github.com/Ariowistus/10x-study-planner/actions/workflows/deploy.yml).
 
+## Aktualizacja produktu: dwa widoki
+
+Na życzenie użytkownika przygotowano zmianę na **Realizacja + Kalendarz**.
+Nowy scenariusz zaliczeniowy: dodaj Angielski o 09:00 i 14:00 w kalendarzu,
+edytuj godzinę/czas, odhacz jeden wpis w Realizacji (50%), cofnij ukończenie
+i usuń wpis. Pokaż odrzucenie kolizji godzin oraz brak danych innego konta.
+
+CRUD dotyczy teraz zajęć kalendarza. Logika biznesowa obejmuje atomową realizację,
+postęp liczony z rzeczywistych wpisów i blokowanie nakładających się godzin,
+także przy równoczesnym zapisie. Oryginalny algorytm pozostaje w kodzie i testach.
+Wymagania kontroli dostępu, artefaktów oraz CI nie zmieniają się.
+
+Zmiana wymaga migracji 20260913150000_calendar_times.sql przed publikacją.
+Stan weryfikacji i wdrożenia tej aktualizacji: [raport zmiany](../context/changes/calendar-first/change.md).
+
+Dalsza część tego dokumentu to audyt poprzedniego wydania 7199712; jego liczby
+testów, opis ekranów i przykłady prezentacji są historyczne.
+
 ## Wniosek
 
 Projekt spełnia **sześć wymagań technicznych Buildera opisanych w dostępnych

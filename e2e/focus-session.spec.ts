@@ -2,15 +2,15 @@
 // Seed: seed.spec.ts; real auth, routing and DB, controlled browser clock only.
 import { expect } from "@playwright/test";
 import { test } from "./authenticated";
-import { addTopic, nextWeekMonday, setAvailability, waitForHydration } from "./helpers";
+import { addEntry, nextWeekMonday, waitForHydration } from "./helpers";
 
 test("focus timing and export preserve the plan until the learner records completion", async ({ page }) => {
-  await setAvailability(page, [60, 60, 0, 0, 0, 0, 0]);
-  const title = `Skupienie ${Date.now()}`;
-  await addTopic(page, { title, estimateMinutes: 120 });
+  const title = "Angielski";
   const monday = nextWeekMonday();
-  await page.goto(`/dashboard?week=${monday}`);
-  await page.getByRole("button", { name: "Wygeneruj plan" }).click();
+  await addEntry(page, { title, date: monday, time: "09:00" });
+  await addEntry(page, { title, date: monday, time: "14:00" });
+  await page.goto("/dashboard?week=" + monday);
+  await page.getByText("Minutnik skupienia · " + title, { exact: true }).click();
   await waitForHydration(page);
   await page.clock.install();
   await page.clock.pauseAt(new Date());
@@ -37,7 +37,7 @@ test("focus timing and export preserve the plan until the learner records comple
   const calendar = await response.text();
   expect(calendar.match(/BEGIN:VEVENT/g)).toHaveLength(2);
   expect(calendar).toContain(`SUMMARY:${title} (60 min)`);
-  expect(calendar).toContain(`DTSTART;VALUE=DATE:${monday.replaceAll("-", "")}`);
+  expect(calendar).toContain(`DTSTART:${monday.replaceAll("-", "")}T090000`);
 
   await focus.getByRole("button", { name: "Zakończ sesję (60 min)" }).click();
   await expect(page.getByTestId("completed-minutes")).toHaveText("1 godz.");

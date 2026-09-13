@@ -1,8 +1,9 @@
 import type { APIRoute } from "astro";
 
 import { authenticate, describeFailure, formValues, redirectError, redirectWith } from "@/lib/api";
-import { deleteSession, setSessionStatus } from "@/lib/repository";
-import { sessionStatusSchema } from "@/lib/validation";
+import { deleteSession, saveCalendarSession, setSessionStatus } from "@/lib/repository";
+import { calendarEntrySchema, sessionStatusSchema } from "@/lib/validation";
+import { isIsoDate, startOfMonth } from "@/domain/date";
 
 export const prerender = false;
 
@@ -32,19 +33,29 @@ export const POST: APIRoute = async (context) => {
 
   // The same endpoint serves the week view and the calendar, so it returns the
   // learner to whichever one they posted from.
+  const day = values.day && isIsoDate(values.day) ? values.day : "";
   const back = month
-    ? `/calendar?month=${encodeURIComponent(month)}`
+    ? `/calendar?month=${encodeURIComponent(month)}${day ? `&day=${day}` : ""}`
     : week
       ? `/dashboard?week=${encodeURIComponent(week)}`
       : "/dashboard";
   const destination = month ? "/calendar" : "/dashboard";
-  const locationParam: Record<string, string> = month ? { month } : week ? { week } : {};
+  const locationParam: Record<string, string> = month ? { month, ...(day ? { day } : {}) } : week ? { week } : {};
 
   if (!sessionId) {
     return redirectError(context, back, "Brak identyfikatora sesji");
   }
 
   try {
+    if (values._action === "update") {
+      const parsed = calendarEntrySchema.parse(values);
+      await saveCalendarSession(auth.db, { ...parsed, title: parsed.newTopicTitle, sessionId });
+      return redirectWith(context, "/calendar", {
+        month: startOfMonth(parsed.date),
+        day: parsed.date,
+        ok: "Zapisano zmiany",
+      });
+    }
     if (values._action === "delete") {
       await deleteSession(auth.db, sessionId);
       return redirectWith(context, destination, { ...locationParam, ok: "Usunięto sesję" });

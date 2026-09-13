@@ -1,8 +1,8 @@
 # 10x Study Planner
 
-Turns a topic list, a deadline and a realistic weekly budget of evening minutes
-into a dated study plan — and keeps that plan honest when real life interferes
-with it.
+A calendar and a completion checklist for personal study. Add a name, date,
+start time and duration in **Kalendarz**, then check off the entry in
+**Realizacja**. These are the only two workspace views.
 
 Built as the course project for 10xDevs 3.0.
 
@@ -10,41 +10,20 @@ Built as the course project for 10xDevs 3.0.
 
 **Course submission:** [criteria audit and demo walkthrough](docs/submission-audit.md).
 
-## The idea
-
-Someone preparing for a dated exam usually knows _what_ they have to cover. What
-they do badly, especially when tired, is decide _when_. Comfortable topics get
-revisited; large or unpleasant ones slide until there is no time left.
-
-That allocation is a small optimisation problem. This application does it, and
-redoes it after every completed or skipped session so the plan does not go stale
-within a week.
-
-**The rule, in one sentence:**
-
-> The planner allocates each week's declared available minutes to study topics
-> in descending order of an urgency score derived from priority, remaining
-> minutes and days remaining until the deadline, and recomputes the allocation
-> whenever a session is completed or skipped.
-
-Concretely: urgency is the daily pace a topic would need to finish on time,
-weighted by priority. Deadline pressure therefore beats mere importance, and
-because urgency falls as remaining work shrinks, topics under similar pressure
-interleave instead of one of them swallowing the week.
-
 ## What it does
 
-- Email and password accounts; each learner's data is isolated in the database.
-- Create, edit and delete study topics with an estimate, a priority and an
-  optional deadline.
-- Declare how many minutes are available on each weekday. Zero is meaningful.
-- Generate a week of dated sessions, never exceeding a day's declared minutes.
-- Mark a session done or skipped and watch topic progress follow.
-- Regenerate a week without losing the record of what was already done.
-- Add sessions directly to a monthly calendar; manual blocks survive regeneration.
-- Find topics by name and filter unfinished or completed work.
-- Start a 25-minute focus timer for the next session, pause it or reset it.
-- Download planned sessions as an `.ics` calendar file with all-day entries.
+- Email/password accounts with database row level security.
+- Create, read, edit and delete entries directly in the calendar.
+- Store a start hour and duration; keep old entries without an invented hour.
+- Reject overlapping reservations, including concurrent submissions from two tabs.
+- Record completion atomically and undo it before editing or deleting completed work.
+- Summarize actual entries by name and by week, with search and status filters.
+- Use an optional focus timer and download a weekly ICS snapshot.
+
+The business rules include overlap detection, same-day duration constraints,
+atomic completion bookkeeping, and progress calculated from the week's actual
+entries. The original urgency-based generator remains covered in the domain
+and through its compatibility API, but is no longer part of the everyday UI.
 
 ## Stack
 
@@ -141,6 +120,12 @@ Deployment is a separate, manually triggered workflow, so publishing is never a
 side effect of merging. It needs four repository secrets: `SUPABASE_URL`,
 `SUPABASE_KEY`, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
+## Database upgrade for the two-view workspace
+
+Apply `supabase/migrations/20260913150000_calendar_times.sql` before deploying
+the calendar-first application. It only adds a nullable hour and a scoped
+transactional write function. Existing entries are retained.
+
 ## Status and limitations
 
 This is a course MVP, and the boundaries are deliberate.
@@ -154,7 +139,7 @@ This is a course MVP, and the boundaries are deliberate.
 - The focus timer resets on navigation or refresh. It never records progress
   automatically; completion is an explicit action for the whole session.
 - Calendar export is a downloaded snapshot, not live synchronization. Sessions
-  have no start hour, so entries are all-day with the study duration in the title.
+  with hours use floating local calendar times; untimed entries remain all-day.
 - Undo a completed session before deleting it, so topic progress stays accurate.
 
 The full list of what was deliberately excluded is under "Non-goals" in

@@ -1,0 +1,59 @@
+---
+interface Props {
+  date: string;
+  month: string;
+  id?: string;
+  title?: string;
+  startTime?: string | null;
+  minutes?: number;
+}
+const { date, month, id, title = "", startTime = "09:00", minutes = 60 } = Astro.props;
+---
+
+<form
+  method="POST"
+  action={id ? `/api/sessions/${id}` : "/api/sessions"}
+  class="entry-form"
+  aria-label={id ? `Edytuj ${title}` : "Nowe zajęcie"}
+>
+  {id && <input type="hidden" name="_action" value="update" />}
+  <input type="hidden" name="month" value={month} />
+  <input type="hidden" name="day" value={date} />
+  <label class="entry-wide"
+    >Nazwa zajęcia
+    <input
+      name="newTopicTitle"
+      value={title}
+      required
+      maxlength="200"
+      list="topic-names"
+      placeholder="np. Angielski"
+      data-testid="panel-new-topic"
+    />
+  </label>
+  <label class="entry-wide"
+    >Dzień
+    <input type="date" name="date" value={date} required />
+  </label>
+  <label
+    >Godzina
+    <input type="time" name="startTime" value={startTime ?? ""} step="60" />
+  </label>
+  <label
+    >Czas (min)
+    <input
+      type="number"
+      name="minutes"
+      value={minutes}
+      required
+      min="1"
+      max="1440"
+      step="1"
+      data-testid="panel-minutes"
+    />
+  </label>
+  <p class="entry-wide text-ink-muted text-xs">Pusta godzina oznacza zajęcie bez ustalonej pory.</p>
+  <button type="submit" class="action-primary entry-wide" data-testid={id ? "save-session" : "panel-add-session"}>
+    {id ? "Zapisz zmiany" : "Dodaj zajęcie"}
+  </button>
+</form>

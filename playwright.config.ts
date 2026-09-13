@@ -52,7 +52,7 @@ const supabaseKey = process.env.SUPABASE_KEY ?? fileEnv.SUPABASE_KEY ?? "";
 export default defineConfig({
   testDir: "./e2e",
   // The screenshot pass is a look-at-it tool, not a check. It asserts nothing
-  // and creates accounts, so it stays out of the normal run and out of CI.
+  // and creates accounts, so it stays opt-in. CI opts in to upload review images.
   testIgnore: process.env.E2E_SHOTS ? [] : ["**/shots.spec.ts"],
   fullyParallel: false,
   workers: 1,

@@ -1,35 +1,31 @@
 ---
 import AppLayout from "@/layouts/AppLayout.astro";
+import CalendarEntryForm from "@/components/CalendarEntryForm.astro";
 import { createClient } from "@/lib/supabase";
 import { loadMonthView, todayIso, type MonthView } from "@/lib/planning";
-import { addMonths, isIsoDate, startOfMonth, startOfWeek } from "@/domain/date";
-
+import { addMonths, isIsoDate, startOfMonth, startOfWeek, weekdayIndex } from "@/domain/date";
+import { timeRange } from "@/domain/agenda";
 export const prerender = false;
-
-// Unauthenticated requests never reach this page: `/calendar` is listed in
-// PROTECTED_ROUTES and the middleware redirects them to sign-in.
-
 const today = todayIso();
 const requested = Astro.url.searchParams.get("month");
 const monthStart = startOfMonth(isIsoDate(requested) ? requested : today);
-const openDay = Astro.url.searchParams.get("day");
-
+const requestedDay = Astro.url.searchParams.get("day");
+const selectedDay =
+  isIsoDate(requestedDay) && startOfMonth(requestedDay) === monthStart
+    ? requestedDay
+    : startOfMonth(today) === monthStart
+      ? today
+      : monthStart;
 const db = createClient(Astro.request.headers, Astro.cookies);
-
 let month: MonthView | null = null;
 let loadError: string | null = null;
-
-if (db) {
-  try {
-    month = await loadMonthView(db, monthStart, today);
-  } catch (cause) {
-    loadError = cause instanceof Error ? cause.message : "Nie udało się wczytać kalendarza";
-  }
-} else {
-  loadError = "Supabase nie jest skonfigurowany";
+try {
+  if (db) month = await loadMonthView(db, monthStart, today);
+  else loadError = "Supabase nie jest skonfigurowany";
+} catch {
+  loadError = "Nie udało się wczytać kalendarza. Odśwież stronę.";
 }
-
-const MONTHS = [
+const months = [
   "Styczeń",
   "Luty",
   "Marzec",
@@ -43,300 +39,198 @@ const MONTHS = [
   "Listopad",
   "Grudzień",
 ];
-const DAY_HEADERS = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
-
-const statusLabel: Record<string, string> = {
-  planned: "zaplanowane",
-  done: "zrobione",
-  skipped: "pominięte",
-};
-
-function monthName(iso: string): string {
-  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
-}
-
-function formatMinutes(total: number): string {
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
-  if (hours === 0) return `${minutes} min`;
-  if (minutes === 0) return `${hours} godz.`;
-  return `${hours} godz. ${minutes} min`;
-}
-
-const previousMonth = addMonths(monthStart, -1);
-const nextMonth = addMonths(monthStart, 1);
-
-const ghostButton =
-  "rounded-[10px] border border-line px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink";
-const tinyButton = "rounded-[10px] border px-2 py-1 text-[11px] font-medium transition-colors active:translate-y-px";
-const panelField =
-  "w-full rounded-[10px] border border-line bg-raised px-2 py-1.5 text-[12px] text-ink transition-colors focus:border-brand focus:outline-none";
+const weekdays = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
+const day = month?.weeks.flat().find((day) => day.date === selectedDay);
 ---
 
-<AppLayout
-  title="Kalendarz"
-  subtitle="Kliknij dzień, żeby dopisać temat i czas. Cały miesiąc widać z lotu ptaka."
-  active="calendar"
->
+<AppLayout title="Kalendarz" subtitle="Wybierz dzień. Wpisz zajęcie, godzinę i czas trwania." active="calendar">
   {
     loadError && (
-      <p class="border-danger-line bg-danger-soft text-danger mb-8 rounded-[10px] border px-4 py-3 text-sm">
+      <p role="alert" class="empty-state">
         {loadError}
       </p>
     )
   }
-
   {
     month && (
       <>
-        <section class="border-line mb-8 flex flex-wrap items-end justify-between gap-6 border-b pb-6">
-          <div>
-            <p data-testid="month-name" class="text-lg font-medium tracking-tight">
-              {monthName(month.monthStart)}
-            </p>
-            <p class="tnum text-ink-muted mt-2 text-sm">
-              <span data-testid="month-completed" class="text-brand font-medium">
-                {formatMinutes(month.completedMinutes)}
-              </span>
-              {" zrobione, "}
-              <span data-testid="month-planned" class="text-ink font-medium">
-                {formatMinutes(month.plannedMinutes)}
-              </span>
-              {" zaplanowane"}
-            </p>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <a href={`/calendar?month=${previousMonth}`} data-testid="previous-month" class:list={ghostButton}>
-              Poprzedni
-            </a>
-            <a href="/calendar" class:list={ghostButton}>
-              Dziś
-            </a>
-            <a href={`/calendar?month=${nextMonth}`} data-testid="next-month" class:list={ghostButton}>
-              Następny
-            </a>
-          </div>
-        </section>
-
         <datalist id="topic-names">
           {month.topics.map((topic) => (
             <option value={topic.title} />
           ))}
         </datalist>
-
-        <p class="text-ink-muted mb-3 text-xs md:hidden">
-          Przesuń kalendarz w bok, aby zobaczyć wszystkie dni tygodnia.
-        </p>
-        <div class="overflow-x-auto">
-          <div class="min-w-[720px]">
-            <div class="text-ink-faint mb-2 grid grid-cols-7 gap-2 text-[11px] font-medium tracking-wide uppercase">
-              {DAY_HEADERS.map((name) => (
-                <span>{name}</span>
-              ))}
-            </div>
-
-            <div class="flex flex-col gap-2">
-              {month.weeks.map((week) => (
-                <div class="grid grid-cols-7 items-start gap-2">
-                  {week.map((day) => {
-                    const busy = day.plannedMinutes + day.completedMinutes;
-
-                    return (
-                      /* The cell is the control: opening it reveals the day's blocks and the
-                         form that adds another. A details element keeps that working with no
-                         client JavaScript, which is how the rest of this interface behaves. */
-                      <details
-                        data-testid="calendar-day"
-                        data-date={day.date}
-                        data-in-month={String(day.inMonth)}
-                        open={openDay === day.date}
-                        class:list={[
-                          "group/day rounded-[10px] border p-2 transition-colors",
-                          day.isToday ? "border-brand-line bg-brand-soft" : "border-line bg-raised",
-                          !day.inMonth ? "opacity-60" : "",
-                        ]}
+        <div class="calendar-layout">
+          <aside>
+            <section class="month-picker" aria-label="Wybór dnia">
+              <header>
+                <>
+                  <h2 data-testid="month-name">
+                    {months[Number(monthStart.slice(5, 7)) - 1]} {monthStart.slice(0, 4)}
+                  </h2>
+                  <div class="flex gap-1">
+                    <>
+                      <a
+                        class="month-arrow"
+                        href={"/calendar?month=" + addMonths(monthStart, -1)}
+                        data-testid="previous-month"
+                        aria-label="Poprzedni miesiąc"
                       >
-                        <summary class="min-h-[92px] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                          <div class="mb-1.5 flex items-baseline justify-between gap-1">
-                            <span
-                              class:list={[
-                                "tnum text-[12px]",
-                                day.isToday ? "text-brand font-semibold" : "font-medium",
-                              ]}
-                            >
-                              {day.date.slice(8)}
-                            </span>
-                            <span class="tnum text-ink-faint text-[10px]">{busy > 0 ? `${busy} min` : "—"}</span>
-                          </div>
-
-                          {day.sessions.length > 0 && (
-                            <ul class="flex flex-col gap-1">
-                              {day.sessions.slice(0, 3).map((session) => (
-                                <li
-                                  data-testid="calendar-session"
-                                  class:list={[
-                                    "flex items-baseline justify-between gap-1 rounded px-1 py-0.5 text-[10px] leading-tight",
-                                    session.status === "done"
-                                      ? "bg-brand-soft text-brand"
-                                      : session.status === "skipped"
-                                        ? "text-ink-faint line-through"
-                                        : "bg-sunken text-ink-muted",
-                                  ]}
-                                  title={`${session.topicTitle} — ${session.minutes} min`}
-                                >
-                                  <span class="truncate">{session.topicTitle}</span>
-                                  <span class="tnum shrink-0 opacity-75">{session.minutes} min</span>
-                                </li>
-                              ))}
-                              {day.sessions.length > 3 && (
-                                <li class="text-ink-faint text-[10px]">+{day.sessions.length - 3} więcej</li>
-                              )}
-                            </ul>
-                          )}
-
-                          <span
-                            data-testid="day-add-hint"
-                            class:list={[
-                              "text-ink-faint inline-block text-[10px] underline underline-offset-2 group-open/day:hidden",
-                              day.sessions.length > 0 ? "mt-1.5" : "",
-                            ]}
-                          >
-                            + dodaj
-                          </span>
-                        </summary>
-
-                        <div class="border-line mt-2 border-t pt-2">
-                          {day.sessions.length > 0 && (
-                            <ul class="mb-2 flex flex-col gap-2">
-                              {day.sessions.map((session) => (
-                                <li class="border-line border-b pb-2 last:border-b-0 last:pb-0">
-                                  <p class="text-[11px] leading-snug font-medium">{session.topicTitle}</p>
-                                  <p class="tnum text-ink-faint mt-0.5 text-[10px]">
-                                    {session.minutes} min · {statusLabel[session.status]}
-                                  </p>
-
-                                  <div class="mt-1.5 flex flex-wrap gap-1">
-                                    {session.status === "done" && (
-                                      <form method="POST" action={`/api/sessions/${session.id}`}>
-                                        <input type="hidden" name="status" value="planned" />
-                                        <input type="hidden" name="month" value={month.monthStart} />
-                                        <button type="submit" class:list={[tinyButton, "border-line text-ink-muted"]}>
-                                          Cofnij ukończenie
-                                        </button>
-                                      </form>
-                                    )}
-                                    {session.status !== "done" && (
-                                      <form method="POST" action={`/api/sessions/${session.id}`}>
-                                        <input type="hidden" name="status" value="done" />
-                                        <input type="hidden" name="month" value={month.monthStart} />
-                                        <button
-                                          type="submit"
-                                          data-testid="panel-mark-done"
-                                          class:list={[tinyButton, "border-brand-line text-brand hover:bg-brand-soft"]}
-                                        >
-                                          Zrobione
-                                        </button>
-                                      </form>
-                                    )}
-                                    <form method="POST" action={`/api/sessions/${session.id}`}>
-                                      <input type="hidden" name="_action" value="delete" />
-                                      <input type="hidden" name="month" value={month.monthStart} />
-                                      <button
-                                        type="submit"
-                                        data-testid="panel-delete-session"
-                                        disabled={session.status === "done"}
-                                        title={
-                                          session.status === "done" ? "Najpierw cofnij ukończenie sesji" : "Usuń sesję"
-                                        }
-                                        class:list={[tinyButton, "border-danger-line text-danger hover:bg-danger-soft"]}
-                                      >
-                                        Usuń
-                                      </button>
-                                    </form>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-
-                          <form method="POST" action="/api/sessions" class="flex flex-col gap-1.5">
-                            <input type="hidden" name="date" value={day.date} />
-                            <input type="hidden" name="month" value={month.monthStart} />
-
-                            <input
-                              type="text"
-                              name="newTopicTitle"
-                              maxlength="200"
-                              required
-                              list="topic-names"
-                              placeholder="Temat"
-                              aria-label="Temat"
-                              data-testid="panel-new-topic"
-                              class:list={panelField}
-                            />
-
-                            <div class="flex items-center gap-1">
-                              <input
-                                type="number"
-                                name="minutes"
-                                value="60"
-                                min="1"
-                                max="1440"
-                                step="1"
-                                aria-label="Minuty"
-                                data-testid="panel-minutes"
-                                class:list={["tnum", panelField]}
-                              />
-                              <button
-                                type="submit"
-                                data-testid="panel-add-session"
-                                class="bg-brand text-brand-contrast hover:bg-brand-hover shrink-0 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors active:translate-y-px"
-                              >
-                                Dodaj
-                              </button>
-                            </div>
-                          </form>
-
-                          <a
-                            href={`/dashboard?week=${startOfWeek(day.date)}`}
-                            class="text-ink-faint hover:text-ink mt-2 inline-block text-[10px] underline underline-offset-2"
-                          >
-                            Otwórz tydzień
-                          </a>
+                        ←
+                      </a>
+                      <a
+                        class="month-arrow"
+                        href={"/calendar?month=" + addMonths(monthStart, 1)}
+                        data-testid="next-month"
+                        aria-label="Następny miesiąc"
+                      >
+                        →
+                      </a>
+                    </>
+                  </div>
+                </>
+              </header>
+              <div class="month-grid">
+                {["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"].map((name) => (
+                  <span class="weekday-label">{name}</span>
+                ))}
+                {month.weeks.flat().map((item) => (
+                  <a
+                    href={"/calendar?month=" + startOfMonth(item.date) + "&day=" + item.date}
+                    data-testid="calendar-day"
+                    data-date={item.date}
+                    aria-label={item.date + ", " + String(item.sessions.length) + " zajęć"}
+                    aria-current={item.date === selectedDay ? "date" : undefined}
+                    class:list={[
+                      "month-day",
+                      !item.inMonth && "outside-month",
+                      item.isToday && "is-today",
+                      item.date === selectedDay && "is-selected",
+                    ]}
+                  >
+                    <span>{Number(item.date.slice(8))}</span>
+                    <span class="day-dots" aria-hidden="true">
+                      {item.sessions.slice(0, 3).map((session) => (
+                        <i class:list={session.status === "done" ? "dot-done" : ""} />
+                      ))}
+                    </span>
+                  </a>
+                ))}
+              </div>
+              <a href="/calendar" class="text-brand mt-4 inline-block text-sm font-medium">
+                Przejdź do dzisiaj
+              </a>
+            </section>
+            <section class="new-entry-panel mt-5" aria-labelledby="new-entry-heading">
+              <>
+                <h2 id="new-entry-heading">Dodaj zajęcie</h2>
+                <p class="text-ink-muted mt-1 mb-5 text-sm">Pojawi się też na liście Realizacja.</p>
+                <CalendarEntryForm date={selectedDay} month={monthStart} />
+              </>
+            </section>
+          </aside>
+          <section class="day-agenda" aria-label="Zajęcia wybranego dnia">
+            <header class="day-agenda-heading">
+              <>
+                <div>
+                  <>
+                    <p class="text-brand mb-1 text-sm">{selectedDay === today ? "Dzisiaj" : "Wybrany dzień"}</p>
+                    <h2>
+                      {weekdays[weekdayIndex(selectedDay)]}{" "}
+                      <span class="tnum text-ink-muted">
+                        {selectedDay.slice(8)}.{selectedDay.slice(5, 7)}
+                      </span>
+                    </h2>
+                    <p class="text-ink-muted mt-2 text-sm">
+                      {day?.sessions.length ?? 0} zajęć · {(day?.plannedMinutes ?? 0) + (day?.completedMinutes ?? 0)}{" "}
+                      min
+                    </p>
+                  </>
+                </div>
+                <a class="action-secondary" href={"/dashboard?week=" + startOfWeek(selectedDay)}>
+                  Zobacz realizację
+                </a>
+              </>
+            </header>
+            {!day?.sessions.length && (
+              <div class="empty-state">
+                <h3>Ten dzień jest jeszcze wolny</h3>
+                <p>Dodaj np. angielski o 09:00 na 60 minut. Możesz zapisać kilka zajęć tego samego dnia.</p>
+              </div>
+            )}
+            <ul class="calendar-entry-list">
+              {day?.sessions.map((session) => (
+                <li
+                  id={"entry-" + session.id}
+                  data-testid="calendar-session"
+                  class:list={["calendar-entry", session.status === "done" && "is-done"]}
+                >
+                  <div class="entry-heading">
+                    <div>
+                      <p class="entry-time tnum">{timeRange(session.startTime, session.minutes)}</p>
+                      <h3>{session.topicTitle}</h3>
+                      <p class="text-ink-muted mt-1 text-sm">
+                        {session.minutes} min ·{" "}
+                        {session.status === "done"
+                          ? "zrobione"
+                          : session.status === "skipped"
+                            ? "pominięte"
+                            : "do zrobienia"}
+                      </p>
+                    </div>
+                    <form method="POST" action={"/api/sessions/" + session.id}>
+                      <input type="hidden" name="month" value={monthStart} />
+                      <input type="hidden" name="day" value={selectedDay} />
+                      <input type="hidden" name="status" value={session.status === "done" ? "planned" : "done"} />
+                      <button type="submit" class="action-secondary" data-testid="panel-mark-done">
+                        {session.status === "done" ? "Cofnij ukończenie" : "✓ Zrobione"}
+                      </button>
+                    </form>
+                  </div>
+                  <div class="entry-actions">
+                    {session.status !== "done" && (
+                      <details class="entry-edit">
+                        <summary>Edytuj zajęcie</summary>
+                        <div class="mt-4">
+                          <CalendarEntryForm
+                            id={session.id}
+                            title={session.topicTitle}
+                            date={session.date}
+                            startTime={session.startTime}
+                            minutes={session.minutes}
+                            month={monthStart}
+                          />
                         </div>
                       </details>
-                    );
-                  })}
-                </div>
+                    )}
+                    <form method="POST" action={"/api/sessions/" + session.id}>
+                      <input type="hidden" name="_action" value="delete" />
+                      <input type="hidden" name="month" value={monthStart} />
+                      <input type="hidden" name="day" value={selectedDay} />
+                      <button
+                        type="submit"
+                        data-testid="panel-delete-session"
+                        disabled={session.status === "done"}
+                        class="delete-entry"
+                        title={session.status === "done" ? "Najpierw cofnij ukończenie zajęcia" : "Usuń zajęcie"}
+                      >
+                        Usuń
+                      </button>
+                    </form>
+                  </div>
+                  {session.status === "done" && (
+                    <p class="text-ink-muted mt-3 text-xs">Aby edytować lub usunąć, najpierw cofnij ukończenie.</p>
+                  )}
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </section>
         </div>
-
-        <p class="text-ink-faint mt-6 text-[13px]">
-          Sesje dodane ręcznie zostają na miejscu, także wtedy, gdy w widoku
-          <a href="/dashboard" class="hover:text-ink mx-1 underline underline-offset-2">
-            Plan
-          </a>
-          poprosisz o automatyczne rozplanowanie tygodnia — reguła omija wieczory, które już zająłeś. Szacowany czas,
-          priorytet i termin tematu ustawisz na stronie
-          <a href="/topics" class="hover:text-ink mx-1 underline underline-offset-2">
-            Tematy
-          </a>
-          .
-        </p>
       </>
     )
   }
 </AppLayout>
-
 <script>
-  // The minute fields open with a value in them, so clicking in and typing would
-  // append to it. Selecting on focus makes the existing value a suggestion.
-  document.querySelectorAll("input[type=number]").forEach((field) => {
-    field.addEventListener("focus", () => {
-      (field as HTMLInputElement).select();
-    });
-  });
+  document
+    .querySelectorAll("input[type=number]")
+    .forEach((field) => field.addEventListener("focus", () => (field as HTMLInputElement).select()));
 </script>

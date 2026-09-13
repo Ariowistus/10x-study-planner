@@ -1,239 +1,76 @@
 ---
 import "../styles/global.css";
-
 export const prerender = false;
-
-const { user } = Astro.locals;
-
-/**
- * Sample week shown below the hero.
- *
- * This is not a mock image and not a fake screenshot: it is the same day-card
- * vocabulary the dashboard renders, with example data, so what a visitor sees
- * here is what they get after signing in.
- */
-const sampleWeek = [
-  { day: "pon.", date: "13", available: 60, sessions: [{ title: "Protokoły routingu", minutes: 60, done: true }] },
-  { day: "wt.", date: "14", available: 60, sessions: [{ title: "Protokoły routingu", minutes: 45, done: false }] },
-  { day: "śr.", date: "15", available: 0, sessions: [] },
-  { day: "czw.", date: "16", available: 90, sessions: [{ title: "Ćwiczenia z podsieci", minutes: 90, done: false }] },
-  { day: "pt.", date: "17", available: 0, sessions: [] },
-  {
-    day: "sob.",
-    date: "18",
-    available: 120,
-    sessions: [{ title: "Listy kontroli dostępu", minutes: 120, done: false }],
-  },
-  { day: "niedz.", date: "19", available: 45, sessions: [{ title: "Ćwiczenia z podsieci", minutes: 45, done: false }] },
-];
-
-const primaryButton =
-  "inline-flex items-center rounded-[10px] bg-brand px-5 py-2.5 text-sm font-medium text-brand-contrast transition-colors hover:bg-brand-hover active:translate-y-px";
-const secondaryButton =
-  "inline-flex items-center rounded-[10px] border border-line px-5 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink active:translate-y-px";
 ---
 
 <!doctype html>
 <html lang="pl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>10x Study Planner</title>
-    <meta
+  <head
+    ><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link
+      rel="icon"
+      type="image/png"
+      href="/favicon.png"
+    /><title>Study Planner · Kalendarz i realizacja</title><meta
       name="description"
-      content="Zamienia listę tematów, termin egzaminu i tygodniowy budżet czasu w datowany plan nauki i przelicza go na podstawie tego, co naprawdę zrobisz."
-    />
-  </head>
-  <body class="bg-surface text-ink min-h-[100dvh]">
+      content="Zapisuj zajęcia w kalendarzu i odhaczaj zrobione. Jeden widok do planowania czasu, drugi do śledzenia realizacji."
+    /></head
+  >
+  <body class="bg-surface text-ink min-h-screen">
     <header class="border-line border-b">
-      <div class="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
-        <span class="text-[15px] font-semibold tracking-tight">Study Planner</span>
-        {
-          user ? (
-            <a href="/calendar" class="text-brand text-sm font-medium underline underline-offset-4">
-              Otwórz kalendarz
-            </a>
-          ) : (
-            <a href="/auth/signin" class="text-ink-muted hover:text-ink text-sm font-medium transition-colors">
-              Zaloguj się
-            </a>
-          )
-        }
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
+        <span class="font-semibold tracking-tight">Study Planner</span><a href="/auth/signin" class="action-secondary"
+          >Zaloguj się</a
+        >
       </div>
     </header>
-
-    <main>
-      <!-- Hero: the message is the design, so it carries no decorative asset. -->
-      <section class="mx-auto max-w-5xl px-4 pt-16 pb-14 sm:pt-24">
-        <div class="grid gap-10 lg:grid-cols-12 lg:gap-16">
-          <div class="lg:col-span-8">
-            <h1 class="text-[34px] leading-[1.08] font-semibold tracking-tight sm:text-[44px] lg:text-5xl">
-              Wiesz, czego się uczyć.
-              <span class="text-ink-muted block">Problem w tym, kiedy.</span>
-            </h1>
-
-            <p class="text-ink-muted mt-6 max-w-[52ch] text-lg">
-              Podaj tematy, termin i wieczory, które naprawdę masz. Dostaniesz datowany tydzień, przeliczany na
-              podstawie tego, co faktycznie zrobisz.
-            </p>
-
-            <div class="mt-9 flex flex-wrap gap-3">
-              {
-                user ? (
-                  <a href="/calendar" class:list={primaryButton}>
-                    Otwórz kalendarz
-                  </a>
-                ) : (
-                  <>
-                    <a href="/auth/signup" class:list={primaryButton}>
-                      Załóż konto
-                    </a>
-                    <a href="/auth/signin" class:list={secondaryButton}>
-                      Zaloguj się
-                    </a>
-                  </>
-                )
-              }
-            </div>
-          </div>
-
-          <div class="lg:col-span-4 lg:pt-3">
-            <dl class="border-line grid grid-cols-3 gap-6 border-t pt-6 lg:grid-cols-1 lg:gap-7">
-              <div>
-                <dt class="text-ink-faint text-[13px]">Respektuje</dt>
-                <dd class="mt-1 text-[15px] leading-snug">Minuty, które zadeklarowałeś, nigdy więcej</dd>
-              </div>
-              <div>
-                <dt class="text-ink-faint text-[13px]">Porządkuje wg</dt>
-                <dd class="mt-1 text-[15px] leading-snug">Tego, jak blisko jest termin tematu</dd>
-              </div>
-              <div>
-                <dt class="text-ink-faint text-[13px]">Przelicza z</dt>
-                <dd class="mt-1 text-[15px] leading-snug">Wieczorów, które dotrzymałeś, nie z planu</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      </section>
-
-      <!-- A real render of the day cards the dashboard uses, with example data. -->
-      <section class="border-line bg-sunken border-y">
-        <div class="mx-auto max-w-5xl px-4 py-14">
-          <div class="mb-7 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 class="text-2xl font-semibold tracking-tight">Tydzień, tak jak wychodzi</h2>
-            <p class="tnum text-ink-faint text-sm">Przykładowe dane, sześć godzin w pięć wieczorów</p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
-            {
-              sampleWeek.map((day) => {
-                const used = day.sessions.reduce((sum, session) => sum + session.minutes, 0);
-                const percent = day.available === 0 ? 0 : Math.min(100, Math.round((used / day.available) * 100));
-
-                return (
-                  <article class="border-line bg-raised flex flex-col rounded-[10px] border p-3">
-                    <header class="mb-3 flex items-baseline justify-between">
-                      <h3 class="text-[13px] font-semibold tracking-tight">{day.day}</h3>
-                      <span class="tnum text-ink-faint text-[11px]">{day.date}</span>
-                    </header>
-
-                    <div class="mb-3">
-                      <div class="bg-sunken h-1 w-full overflow-hidden rounded-full">
-                        <div class="bg-brand h-full rounded-full" style={`width: ${percent}%`} />
-                      </div>
-                      <p class="tnum text-ink-faint mt-1.5 text-[11px]">{`${used} / ${day.available} min`}</p>
-                    </div>
-
-                    {day.sessions.length === 0 ? (
-                      <p class="text-ink-faint text-[12px]">Dzień wolny</p>
-                    ) : (
-                      <ul class="flex flex-col gap-2">
-                        {day.sessions.map((session) => (
-                          <li>
-                            <p class="text-[13px] leading-snug font-medium">{session.title}</p>
-                            <p class="tnum text-ink-faint mt-0.5 text-[11px]">{session.minutes} min</p>
-                            <span
-                              class:list={[
-                                "mt-1.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                                session.done
-                                  ? "border-brand-line bg-brand-soft text-brand border"
-                                  : "border-line text-ink-faint border",
-                              ]}
-                            >
-                              {session.done ? "zrobione" : "zaplanowane"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </article>
-                );
-              })
-            }
-          </div>
-        </div>
-      </section>
-
-      <section class="mx-auto max-w-5xl px-4 py-16">
-        <div class="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          <div>
-            <h2 class="text-2xl font-semibold tracking-tight">Jak podejmuje decyzję</h2>
-            <p class="text-ink-muted mt-4 text-[17px] leading-relaxed">
-              Każdy temat dostaje wynik wyprowadzony z dziennego tempa, jakiego wymagałby, żeby skończyć na czas,
-              przemnożony przez to, jak bardzo jest ważny. Bliski termin wygrywa więc z tematem, który jest jedynie
-              ważny. A ponieważ wynik spada wraz z ubywaniem pracy, tematy pod podobną presją przeplatają się, zamiast
-              jednego pożerającego cały tydzień.
-            </p>
-          </div>
-
-          <ul class="divide-line border-line flex flex-col divide-y border-t">
-            <li class="py-4">
-              <p class="font-medium">Dzień nigdy nie jest przepełniony</p>
-              <p class="text-ink-muted mt-1 text-[15px]">
-                Minuty w danym wieczorze nigdy nie przekraczają tego, co zadeklarowałeś.
-              </p>
-            </li>
-            <li class="py-4">
-              <p class="font-medium">Duże tematy są dzielone</p>
-              <p class="text-ink-muted mt-1 text-[15px]">
-                Coś większego niż jeden wieczór rozkłada się na kilka, zamiast zostać ucięte.
-              </p>
-            </li>
-            <li class="py-4">
-              <p class="font-medium">Opuszczony wieczór to nie dług</p>
-              <p class="text-ink-muted mt-1 text-[15px]">Pomiń sesję, a praca wraca do puli na następny plan.</p>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      {
-        !user && (
-          <section class="border-line border-t">
-            <div class="mx-auto max-w-5xl px-4 py-16">
-              <h2 class="max-w-[24ch] text-2xl font-semibold tracking-tight">
-                Zacznij od trzech tematów i wieczorów, które naprawdę masz.
-              </h2>
-              <a href="/auth/signup" class:list={["mt-7", primaryButton]}>
-                Załóż konto
-              </a>
-            </div>
-          </section>
-        )
-      }
-    </main>
-
-    <footer class="border-line border-t">
-      <div class="text-ink-faint mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm">
-        <span>Projekt zaliczeniowy kursu 10xDevs 3.0</span>
-        <a
-          href="https://github.com/Ariowistus/10x-study-planner"
-          class="hover:text-ink underline underline-offset-4 transition-colors"
+    <main class="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-2 lg:items-center lg:py-28">
+      <section>
+        <p class="text-brand mb-5 text-sm font-medium">Kalendarz + realizacja</p><h1
+          class="text-5xl leading-[1.06] font-semibold tracking-tight sm:text-6xl"
         >
-          Kod źródłowy i notatki projektowe
-        </a>
-      </div>
+          Zapisz kiedy.<br />Odhacz zrobione.
+        </h1><p class="text-ink-muted mt-6 max-w-lg text-lg leading-relaxed">
+          Angielski w poniedziałek o 09:00? Dodaj go w kalendarzu. Gdy skończysz, odhacz zajęcie na liście i zobacz swój
+          postęp.
+        </p><div class="mt-8 flex flex-wrap gap-3">
+          <a href="/auth/signup" class="action-primary">Załóż konto</a><a href="/auth/signin" class="action-secondary"
+            >Zaloguj się</a
+          >
+        </div><p class="text-ink-muted mt-6 text-sm">Nazwa, dzień, godzina i czas trwania. Tyle wystarczy.</p>
+      </section>
+      <section class="topic-summary" aria-label="Przykład listy realizacji">
+        <div class="mb-6 flex items-center justify-between gap-3">
+          <h2>Poniedziałek</h2><span class="text-ink-muted text-xs">Przykładowy dzień</span>
+        </div><div class="completion-strip">
+          <div class="completion-score"><strong>1<span> / 3</span></strong><p>ukończonych zajęć</p></div><div
+            class="completion-meter"
+          >
+            <div class="completion-track"><div style="width:33%"></div></div><p>60 minut za Tobą</p>
+          </div>
+        </div><ul>
+          <li class="agenda-row is-done">
+            <span class="completion-check grid place-items-center" aria-hidden="true">✓</span><div class="agenda-copy">
+              <h3>Angielski · konwersacje</h3><p class="tnum">09:00–10:00 · 60 min</p>
+            </div>
+          </li>
+          <li class="agenda-row">
+            <span class="completion-check" aria-hidden="true"></span><div class="agenda-copy">
+              <h3>Angielski · słówka</h3><p class="tnum">14:00–14:30 · 30 min</p>
+            </div>
+          </li>
+          <li class="agenda-row">
+            <span class="completion-check" aria-hidden="true"></span><div class="agenda-copy">
+              <h3>Matematyka · zadania</h3><p class="tnum">17:00–18:00 · 60 min</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+    </main>
+    <footer class="text-ink-muted border-line mx-auto max-w-6xl border-t px-6 py-6 text-xs">
+      Projekt kursu 10xDevs · <a
+        href="https://github.com/Ariowistus/10x-study-planner"
+        class="underline underline-offset-4">Kod i dokumentacja</a
+      >
     </footer>
   </body>
 </html>

@@ -1,5 +1,24 @@
 # Test Plan — 10x Study Planner
 
+## Current coverage contract — calendar-first, 2026-09-13
+
+The UI has two views, Realizacja and Kalendarz. Obsolete wizard, topic-page and
+availability-editor UI scenarios are replaced by calendar CRUD and completion
+journeys. The pure scheduler suite remains intact; generator preservation and
+manual reservation behavior remain tested via its real API. No assertions are
+weakened to retain the previous screen layout.
+
+Current risks: hour/date/duration persistence, repeat-name progress denominator,
+completion undo, blocked completed edits/deletes, overlapping and concurrent
+reservations, invalid dates/times, CSRF, cross-account read/write isolation,
+old bookmarks, untimed data and timed ICS, and focus timer without auto-completion.
+The authenticated fixture creates a fresh account via real application endpoints
+and deletes only its own topics through authenticated APIs after each scenario.
+CI discards its entire local Supabase stack. Hosted test auth accounts remain.
+
+The historical matrix below documents the earlier UI. Current executable cases
+are in e2e/planner.spec.ts, seed.spec.ts, completed-session.spec.ts and focus-session.spec.ts.
+
 - **Inputs**: `prd.md`, `tech-stack.md`
 - **Date**: 2026-09-10
 

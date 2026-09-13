@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isIsoDate } from "../domain/date";
+import { endsWithinDay } from "../domain/agenda";
 
 /**
  * Request validation for the API surface.
@@ -71,6 +72,21 @@ export const manualSessionSchema = z.object({
 export const sessionStatusSchema = z.object({
   status: z.enum(["planned", "done", "skipped"]),
 });
+
+export const calendarEntrySchema = z
+  .object({
+    newTopicTitle: z.string().trim().min(1, "Wpisz nazwę zajęcia").max(200, "Nazwa jest za długa"),
+    date: isoDate,
+    startTime: z
+      .union([z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Podaj godzinę GG:MM"), z.literal("")])
+      .optional()
+      .transform((value) => (value === "" || value === undefined ? null : value)),
+    minutes: z.coerce.number().int().min(1, "Zajęcie musi trwać co najmniej minutę").max(1440, "Doba ma 1440 minut"),
+  })
+  .refine((value) => !value.startTime || endsWithinDay(value.startTime, value.minutes), {
+    message: "Zajęcie musi zakończyć się do północy",
+    path: ["startTime"],
+  });
 
 export type TopicInput = z.infer<typeof topicInputSchema>;
 export type TopicUpdate = z.infer<typeof topicUpdateSchema>;

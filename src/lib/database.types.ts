@@ -83,6 +83,7 @@ export interface Database {
           plan_id: string;
           topic_id: string;
           scheduled_date: string;
+          start_time: string | null;
           minutes: number;
           status: "planned" | "done" | "skipped";
           manual: boolean;
@@ -95,6 +96,7 @@ export interface Database {
           plan_id: string;
           topic_id: string;
           scheduled_date: string;
+          start_time?: string | null;
           minutes: number;
           status?: "planned" | "done" | "skipped";
           manual?: boolean;
@@ -110,6 +112,16 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
+      save_calendar_session: {
+        Args: {
+          p_title: string;
+          p_date: string;
+          p_start_time: string | null;
+          p_minutes: number;
+          p_session_id?: string;
+        };
+        Returns: Database["public"]["Tables"]["sessions"]["Row"];
+      };
       set_session_status: {
         Args: { p_session_id: string; p_status: string };
         Returns: Database["public"]["Tables"]["sessions"]["Row"];

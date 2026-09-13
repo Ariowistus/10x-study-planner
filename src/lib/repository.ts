@@ -15,6 +15,27 @@ export type Db = NonNullable<ReturnType<typeof createClient>>;
 export type TopicRow = Database["public"]["Tables"]["topics"]["Row"];
 export type SessionRow = Database["public"]["Tables"]["sessions"]["Row"];
 
+export async function saveCalendarSession(
+  db: Db,
+  input: {
+    title: string;
+    date: string;
+    startTime: string | null;
+    minutes: number;
+    sessionId?: string;
+  },
+): Promise<SessionRow> {
+  const { data, error } = await db.rpc("save_calendar_session", {
+    p_title: input.title,
+    p_date: input.date,
+    p_start_time: input.startTime,
+    p_minutes: input.minutes,
+    ...(input.sessionId ? { p_session_id: input.sessionId } : {}),
+  });
+  if (error) throw new RepositoryError(error.message, 409);
+  return data;
+}
+
 export function toTopic(row: TopicRow): Topic {
   return {
     id: row.id,

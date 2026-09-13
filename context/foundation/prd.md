@@ -1,5 +1,26 @@
 # Product Requirements Document — 10x Study Planner
 
+## Current product decision — 2026-09-13, calendar-first
+
+This section supersedes the original topic/budget/generation UI requirements
+below. The earlier specification records the original product and retained
+compatibility engine, not the current navigation contract.
+
+- Two workspace views only: **Realizacja** (default after login) and **Kalendarz**.
+- Calendar creates and edits a name, date, optional hour and duration in one form.
+- Calendar entries themselves are the dashboard checklist; no separate topic setup.
+- Equal names share a weekly summary based on the actual entries, not an estimate.
+- Scheduled intervals cannot overlap; adjacent intervals are allowed. Writes from
+  multiple tabs are serialized per learner. Entries must end by midnight.
+- Completing/undoing changes persisted progress atomically. Completed entries are
+  locked for edit/delete until undone. Existing dates and progress are retained.
+- The timer is optional and collapsed; exporting scheduled hours uses local wall
+  clock time, with untimed legacy entries remaining all-day.
+- CRUD, login/RLS, business rules, domain/browser tests and dual-target CI remain
+  part of the course submission contract.
+
+Implementation and verification: [calendar-first](../changes/calendar-first/change.md).
+
 - **Source**: `context/foundation/shape-notes.md`
 - **Date**: 2026-09-10
 - **Mode**: greenfield

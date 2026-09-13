@@ -1,4 +1,5 @@
 import { addDays, endOfMonth, startOfMonth, startOfWeek, weekdayIndex } from "@/domain/date";
+import { compareEntries } from "@/domain/agenda";
 import { generatePlan, remainingCapacity, remainingMinutes, reserveTopicMinutes } from "@/domain/scheduler";
 import type { Availability, IsoDate, SessionStatus, Topic } from "@/domain/types";
 import {
@@ -37,6 +38,7 @@ export interface SessionView {
   topicId: string;
   topicTitle: string;
   date: IsoDate;
+  startTime: string | null;
   minutes: number;
   status: SessionStatus;
   /** Placed by the learner rather than by the scheduling rule. */
@@ -127,6 +129,7 @@ export async function loadWeekView(db: Db, weekStart: IsoDate): Promise<WeekView
     topicId: row.topic_id,
     topicTitle: titleById.get(row.topic_id) ?? "Usunięty temat",
     date: row.scheduled_date,
+    startTime: row.start_time?.slice(0, 5) ?? null,
     minutes: row.minutes,
     status: row.status,
     manual: row.manual,
@@ -134,9 +137,7 @@ export async function loadWeekView(db: Db, weekStart: IsoDate): Promise<WeekView
 
   const days = Array.from({ length: 7 }, (_, offset) => {
     const date = addDays(weekStart, offset);
-    const sessions = views
-      .filter((session) => session.date === date)
-      .sort((a, b) => a.topicTitle.localeCompare(b.topicTitle));
+    const sessions = views.filter((session) => session.date === date).sort(compareEntries);
 
     return {
       date,
@@ -227,6 +228,7 @@ export async function loadMonthView(db: Db, anyDayInMonth: IsoDate, today: IsoDa
     topicId: row.topic_id,
     topicTitle: titleById.get(row.topic_id) ?? "Usunięty temat",
     date: row.scheduled_date,
+    startTime: row.start_time?.slice(0, 5) ?? null,
     minutes: row.minutes,
     status: row.status,
     manual: row.manual,
@@ -236,9 +238,7 @@ export async function loadMonthView(db: Db, anyDayInMonth: IsoDate, today: IsoDa
 
   const days: MonthDay[] = Array.from({ length: dayCount }, (_, offset) => {
     const date = addDays(gridStart, offset);
-    const sessions = views
-      .filter((session) => session.date === date)
-      .sort((a, b) => a.topicTitle.localeCompare(b.topicTitle, "pl"));
+    const sessions = views.filter((session) => session.date === date).sort(compareEntries);
 
     return {
       date,

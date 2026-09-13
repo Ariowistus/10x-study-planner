@@ -114,37 +114,50 @@ export async function registerAndSignIn(page: Page): Promise<string> {
   return email;
 }
 
-/** Declares minutes available on each weekday, Monday first. */
+/** Legacy generator setup goes through its API; the old setup UI was removed. */
 export async function setAvailability(page: Page, minutesPerDay: number[]): Promise<void> {
-  await page.goto("/topics");
-  await waitForHydration(page);
-
+  await page.goto("/dashboard");
   for (const [weekday, minutes] of minutesPerDay.entries()) {
-    await fillControlled(page.getByTestId(`availability-${weekday}`), String(minutes));
+    const response = await page.request.post("/api/availability", {
+      form: { weekday, minutes },
+      headers: { origin: new URL(page.url()).origin },
+      maxRedirects: 0,
+    });
+    expect(response.headers().location).toContain("ok=");
   }
-
-  await page.getByTestId("save-availability").click();
-  await expect(page.getByTestId("flash-ok")).toContainText("Zapisano dostępność");
 }
-
 export async function addTopic(
   page: Page,
   topic: { title: string; estimateMinutes: number; priority?: number; deadline?: string },
 ): Promise<void> {
-  await page.goto("/topics");
-
-  // The topic form is plain server-rendered markup, so it needs no hydration
-  // wait: the fields are never re-controlled after load.
-  await page.getByTestId("topic-title").fill(topic.title);
-  await page.getByTestId("topic-estimate").fill(String(topic.estimateMinutes));
-
-  if (topic.priority !== undefined) {
-    await page.getByTestId("topic-priority").selectOption(String(topic.priority));
-  }
-  if (topic.deadline !== undefined) {
-    await page.getByTestId("topic-deadline").fill(topic.deadline);
-  }
-
-  await page.getByTestId("add-topic").click();
-  await expect(page.getByTestId("flash-ok")).toContainText("Dodano temat");
+  await page.goto("/dashboard");
+  const response = await page.request.post("/api/topics", {
+    form: {
+      title: topic.title,
+      estimatedMinutes: topic.estimateMinutes,
+      priority: topic.priority ?? 3,
+      deadline: topic.deadline ?? "",
+    },
+    headers: { origin: new URL(page.url()).origin },
+    maxRedirects: 0,
+  });
+  expect(response.headers().location).toContain("ok=");
+}
+export async function addEntry(page: Page, entry: { title: string; date: string; time?: string; minutes?: number }) {
+  await page.goto("/calendar?month=" + entry.date + "&day=" + entry.date);
+  const form = page.getByRole("form", { name: "Nowe zajęcie" });
+  await form.getByLabel("Nazwa zajęcia").fill(entry.title);
+  await form.getByLabel("Godzina").fill(entry.time ?? "09:00");
+  await form.getByLabel("Czas (min)").fill(String(entry.minutes ?? 60));
+  await form.getByRole("button", { name: "Dodaj zajęcie" }).click();
+  await expect(page.getByTestId("flash-ok")).toHaveText("Dodano zajęcie");
+}
+export async function generateWeek(page: Page, week: string) {
+  const response = await page.request.post("/api/plan/generate", {
+    form: { weekStart: week },
+    headers: { origin: new URL(page.url()).origin },
+    maxRedirects: 0,
+  });
+  expect(response.headers().location).toContain("ok=");
+  await page.goto("/dashboard?week=" + week);
 }
