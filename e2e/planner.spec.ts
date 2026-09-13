@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { addTopic, nextWeekMonday, plusDays, registerAndSignIn, setAvailability } from "./helpers";
+import { addTopic, nextWeekMonday, plusDays, registerAndSignIn, setAvailability, waitForHydration } from "./helpers";
 
 /**
  * The flow the certification asks to be covered: a learner reaches a plan and
@@ -163,6 +163,26 @@ test.describe("planning a week", () => {
 });
 
 test.describe("managing topics", () => {
+  // A controlled number input kept its leading zero: React compares the field
+  // with `node.value != props.value`, and "0120" is loosely equal to 120, so it
+  // left the DOM showing 0120 while the state held 120.
+  test("typing into an availability field replaces the zero rather than appending", async ({ page }) => {
+    await registerAndSignIn(page);
+    await page.goto("/topics");
+    await waitForHydration(page);
+
+    const monday = page.getByTestId("availability-0");
+    await monday.click();
+    // The caret has to sit behind the existing zero — that is the case the
+    // browser does not repair on its own, and a click on the right-hand side of
+    // a wide field lands exactly there.
+    await page.keyboard.press("End");
+    await page.keyboard.type("120");
+
+    await expect(monday).toHaveValue("120");
+    await expect(page.getByTestId("availability-total")).toHaveText("2 godz.");
+  });
+
   // US-005
   test("a deleted topic disappears from the list", async ({ page }) => {
     await registerAndSignIn(page);

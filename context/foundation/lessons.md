@@ -148,3 +148,39 @@ found. This file grows by addition; earlier entries are not rewritten.
   assertion instead of the gate. A gate that survives to the end of a slice is a
   gap with a promise attached.
 - **Applies to**: plan, plan-review, implement, impl-review
+
+## A controlled number input in React will not drop a leading zero
+
+- **Context**: Any React-controlled `input[type="number"]` whose value starts at
+  a real number rather than empty — the weekday fields in
+  `AvailabilityEditor.tsx` are the case in this project.
+- **Problem**: A field showing `0` with the caret behind it turns typed input
+  into `01`, `012`, `0120`. The state is correct — `Number.parseInt("0120")` is
+  120, and the weekly total reads right — but the learner sees a field that
+  looks broken and may retype or give up. React does not repair it, and this is
+  deliberate on React's side: it compares a number input with
+  `node.value != props.value`, a loose comparison under which `"0120"` and `120`
+  are equal, so it concludes the DOM already shows the correct value. The
+  browser does not repair it either, because `0120` is a valid number.
+- **Rule**: For a controlled numeric field, select the contents on focus so
+  typing replaces rather than appends, and write the normalised string back to
+  the element in the change handler. Do not rely on React reconciling a number
+  input — for this element it compares loosely by design.
+- **Applies to**: plan, implement, impl-review
+
+## Prove a regression test fails before trusting it
+
+- **Context**: Any test written to cover a bug that was just found, especially
+  end-to-end tests that drive an input.
+- **Problem**: The first test written for the leading-zero bug used
+  `locator.click()` followed by `keyboard.type()`. It passed — and it passed
+  just as happily with the fix reverted, because Playwright's click lands in the
+  middle of a wide field and the browser then replaces the content rather than
+  appending to it. The test asserted a path the bug never took. Only a
+  diagnostic run, printing the field value after each keystroke, showed that the
+  caret has to be pushed to the end with `press("End")` for the defect to appear
+  at all.
+- **Rule**: After writing a regression test, revert the fix and watch the test
+  fail. A test that passes in both states documents nothing and will not stop
+  the bug from returning.
+- **Applies to**: implement, tdd, e2e, impl-review

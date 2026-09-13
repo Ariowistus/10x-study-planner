@@ -223,3 +223,16 @@ const primaryButton =
     }
   </section>
 </AppLayout>
+
+<script>
+  // Every numeric field here opens with a value already in it — the estimate
+  // defaults to 120, an existing topic shows its own. Clicking into one and
+  // typing appends to that value instead of replacing it, which produces
+  // things like "0120". Selecting on focus turns the existing value back into
+  // a suggestion. The forms post identically without this script.
+  document.querySelectorAll("input[type=number]").forEach((field) => {
+    field.addEventListener("focus", () => {
+      (field as HTMLInputElement).select();
+    });
+  });
+</script>

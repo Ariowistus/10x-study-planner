@@ -29,9 +29,25 @@ export default function AvailabilityEditor({ initial }: Props) {
 
   const total = useMemo(() => minutes.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0), [minutes]);
 
-  function update(index: number, raw: string) {
+  /**
+   * Applies a typed value, and repairs the field when the browser kept a
+   * leading zero.
+   *
+   * React compares a controlled number input with `node.value != props.value`,
+   * which is a loose comparison: "0120" and 120 are equal under it, so React
+   * decides the field already shows the right thing and leaves the DOM alone.
+   * The state is 120, the learner sees 0120. Writing the normalised string back
+   * ourselves is the only way to clear it.
+   */
+  function update(index: number, raw: string, field: HTMLInputElement) {
     const parsed = Number.parseInt(raw, 10);
-    setMinutes((current) => current.map((value, i) => (i === index ? (Number.isNaN(parsed) ? 0 : parsed) : value)));
+    const next = Number.isNaN(parsed) ? 0 : parsed;
+
+    if (raw !== "" && field.value !== String(next)) {
+      field.value = String(next);
+    }
+
+    setMinutes((current) => current.map((value, i) => (i === index ? next : value)));
   }
 
   return (
@@ -55,7 +71,12 @@ export default function AvailabilityEditor({ initial }: Props) {
                 step={1}
                 value={value}
                 onChange={(event) => {
-                  update(index, event.target.value);
+                  update(index, event.target.value, event.currentTarget);
+                }}
+                onFocus={(event) => {
+                  // A field showing 0 is a placeholder in practice: typing should
+                  // replace it, not append to it.
+                  event.currentTarget.select();
                 }}
                 aria-label={`${day} — minuty`}
                 data-testid={`availability-${index}`}
