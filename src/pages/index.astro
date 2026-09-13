@@ -51,8 +51,8 @@ const secondaryButton =
         <span class="text-[15px] font-semibold tracking-tight">Study Planner</span>
         {
           user ? (
-            <a href="/dashboard" class="text-brand text-sm font-medium underline underline-offset-4">
-              Otwórz ten tydzień
+            <a href="/calendar" class="text-brand text-sm font-medium underline underline-offset-4">
+              Otwórz kalendarz
             </a>
           ) : (
             <a href="/auth/signin" class="text-ink-muted hover:text-ink text-sm font-medium transition-colors">
@@ -81,8 +81,8 @@ const secondaryButton =
             <div class="mt-9 flex flex-wrap gap-3">
               {
                 user ? (
-                  <a href="/dashboard" class:list={primaryButton}>
-                    Otwórz ten tydzień
+                  <a href="/calendar" class:list={primaryButton}>
+                    Otwórz kalendarz
                   </a>
                 ) : (
                   <>

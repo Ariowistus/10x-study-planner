@@ -341,7 +341,105 @@ test.describe("calendar", () => {
     await expect(monday).toContainText("Protokoły trasowania");
     // The cell carries how long the session is, not just which topic it is.
     await expect(monday.getByTestId("calendar-session").first()).toContainText("60 min");
-    // And the day header reads used against declared.
-    await expect(monday).toContainText("60 / 60 min");
+    // The header prints what is booked on the day.
+    await expect(monday).toContainText("60 min");
+  });
+});
+
+test.describe("planning a day from the calendar", () => {
+  // The core of the calendar-first flow: open a day, name the work, say how
+  // long, and it is on the calendar.
+  test("adds a block to a day, then a second one, and keeps both", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const target = nextWeekMonday();
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+
+    const cell = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await cell.getByTestId("panel-new-topic").fill("Protokoły routingu");
+    await cell.getByTestId("panel-minutes").fill("120");
+    await cell.getByTestId("panel-add-session").click();
+
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    const afterFirst = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await expect(afterFirst).toContainText("Protokoły routingu");
+    await expect(afterFirst).toContainText("120 min");
+
+    // A second block on the same day, this time reusing the topic just created.
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+    const reopened = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await reopened.getByTestId("panel-new-topic").fill("Ćwiczenia z podsieci");
+    await reopened.getByTestId("panel-minutes").fill("90");
+    await reopened.getByTestId("panel-add-session").click();
+
+    const withBoth = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await expect(withBoth.getByTestId("calendar-session")).toHaveCount(2);
+    await expect(withBoth).toContainText("Ćwiczenia z podsieci");
+    await expect(withBoth).toContainText("90 min");
+    // 120 + 90 booked on the day.
+    await expect(withBoth).toContainText("210 min");
+  });
+
+  test("refuses a block with no topic at all", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const target = nextWeekMonday();
+    const response = await page.request.post("/api/sessions", {
+      form: { date: target, minutes: "60", topicId: "", newTopicTitle: "" },
+      headers: { origin: new URL(page.url()).origin },
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(302);
+    expect(response.headers().location).toContain("error=");
+  });
+
+  test("a block placed by hand survives regenerating the week", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const target = nextWeekMonday();
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+
+    const cell = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await cell.getByTestId("panel-new-topic").fill("Blok postawiony ręcznie");
+    await cell.getByTestId("panel-minutes").fill("45");
+    await cell.getByTestId("panel-add-session").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    // Declare time and ask the rule to plan the same week. The hand-placed block
+    // is a decision, not a suggestion: it must still be there afterwards.
+    await setAvailability(page, [180, 0, 0, 0, 0, 0, 0]);
+    await page.goto(`/dashboard?week=${target}`);
+    await page.getByTestId("generate-plan").click();
+
+    await page.goto(`/calendar?month=${target}`);
+    const after = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await expect(after).toContainText("Blok postawiony ręcznie");
+  });
+
+  test("removes a block from the day panel", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const target = nextWeekMonday();
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+
+    const cell = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await cell.getByTestId("panel-new-topic").fill("Do skasowania");
+    await cell.getByTestId("panel-minutes").fill("30");
+    await cell.getByTestId("panel-add-session").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+    await page
+      .locator(`[data-testid="calendar-day"][data-date="${target}"]`)
+      .getByTestId("panel-delete-session")
+      .first()
+      .click();
+
+    await expect(page.getByTestId("flash-ok")).toContainText("Usunięto sesję");
+    await expect(page.locator(`[data-testid="calendar-day"][data-date="${target}"]`)).not.toContainText(
+      "Do skasowania",
+    );
   });
 });

@@ -85,6 +85,7 @@ export interface Database {
           scheduled_date: string;
           minutes: number;
           status: "planned" | "done" | "skipped";
+          manual: boolean;
           completed_at: string | null;
           created_at: string;
         };
@@ -96,10 +97,12 @@ export interface Database {
           scheduled_date: string;
           minutes: number;
           status?: "planned" | "done" | "skipped";
+          manual?: boolean;
           completed_at?: string | null;
         };
         Update: {
           status?: "planned" | "done" | "skipped";
+          manual?: boolean;
           completed_at?: string | null;
         };
         Relationships: [];

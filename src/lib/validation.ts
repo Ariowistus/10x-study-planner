@@ -51,6 +51,22 @@ export const generatePlanSchema = z.object({
   weekStart: isoDate.optional(),
 });
 
+/**
+ * A block the learner places by hand. Either an existing topic is chosen, or a
+ * new one is named and created on the spot; the endpoint enforces that exactly
+ * one of the two arrives.
+ */
+export const manualSessionSchema = z.object({
+  date: isoDate,
+  minutes: z.coerce
+    .number()
+    .int("Minuty muszą być pełną liczbą")
+    .min(1, "Sesja musi trwać co najmniej minutę")
+    .max(1440, "Doba ma 1440 minut"),
+  topicId: z.string().trim().optional(),
+  newTopicTitle: z.string().trim().max(200, "Tytuł jest za długi").optional(),
+});
+
 export const sessionStatusSchema = z.object({
   status: z.enum(["planned", "done", "skipped"]),
 });
