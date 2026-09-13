@@ -34,6 +34,9 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByTestId("generate-plan").click();
       await page.getByTestId("mark-done").first().click();
       await page.screenshot({ path: `shots/${scheme}-dashboard.png`, fullPage: true });
+
+      await page.goto(`/calendar?month=${nextWeekMonday()}`);
+      await page.screenshot({ path: `shots/${scheme}-calendar.png`, fullPage: true });
     });
   });
 }

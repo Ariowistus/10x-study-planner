@@ -1,0 +1,221 @@
+---
+import AppLayout from "@/layouts/AppLayout.astro";
+import { createClient } from "@/lib/supabase";
+import { loadMonthView, todayIso, type MonthView } from "@/lib/planning";
+import { addMonths, startOfMonth, startOfWeek } from "@/domain/date";
+
+export const prerender = false;
+
+// Unauthenticated requests never reach this page: `/calendar` is listed in
+// PROTECTED_ROUTES and the middleware redirects them to sign-in.
+
+const today = todayIso();
+const requested = Astro.url.searchParams.get("month");
+const monthStart = startOfMonth(requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today);
+
+const db = createClient(Astro.request.headers, Astro.cookies);
+
+let month: MonthView | null = null;
+let loadError: string | null = null;
+
+if (db) {
+  try {
+    month = await loadMonthView(db, monthStart, today);
+  } catch (cause) {
+    loadError = cause instanceof Error ? cause.message : "Nie udało się wczytać kalendarza";
+  }
+} else {
+  loadError = "Supabase nie jest skonfigurowany";
+}
+
+const MONTHS = [
+  "Styczeń",
+  "Luty",
+  "Marzec",
+  "Kwiecień",
+  "Maj",
+  "Czerwiec",
+  "Lipiec",
+  "Sierpień",
+  "Wrzesień",
+  "Październik",
+  "Listopad",
+  "Grudzień",
+];
+const DAY_HEADERS = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
+
+function monthName(iso: string): string {
+  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+}
+
+function formatMinutes(total: number): string {
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (hours === 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} godz.`;
+  return `${hours} godz. ${minutes} min`;
+}
+
+const previousMonth = addMonths(monthStart, -1);
+const nextMonth = addMonths(monthStart, 1);
+
+const ghostButton =
+  "rounded-[10px] border border-line px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink";
+---
+
+<AppLayout
+  title="Kalendarz"
+  subtitle="Cały miesiąc z lotu ptaka: gdzie jest praca, a gdzie puste wieczory."
+  active="calendar"
+>
+  {
+    loadError && (
+      <p class="border-danger-line bg-danger-soft text-danger mb-8 rounded-[10px] border px-4 py-3 text-sm">
+        {loadError}
+      </p>
+    )
+  }
+
+  {
+    month && (
+      <>
+        <section class="border-line mb-8 flex flex-wrap items-end justify-between gap-6 border-b pb-6">
+          <div>
+            <p data-testid="month-name" class="text-lg font-medium tracking-tight">
+              {monthName(month.monthStart)}
+            </p>
+            <p class="tnum text-ink-muted mt-2 text-sm">
+              <span data-testid="month-completed" class="text-brand font-medium">
+                {formatMinutes(month.completedMinutes)}
+              </span>
+              {" zrobione, "}
+              <span data-testid="month-planned" class="text-ink font-medium">
+                {formatMinutes(month.plannedMinutes)}
+              </span>
+              {" zaplanowane, "}
+              <span class="text-ink font-medium">{formatMinutes(month.availableMinutes)}</span>
+              {" zadeklarowane"}
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <a href={`/calendar?month=${previousMonth}`} data-testid="previous-month" class:list={ghostButton}>
+              Poprzedni
+            </a>
+            <a href="/calendar" class:list={ghostButton}>
+              Dziś
+            </a>
+            <a href={`/calendar?month=${nextMonth}`} data-testid="next-month" class:list={ghostButton}>
+              Następny
+            </a>
+          </div>
+        </section>
+
+        {month.sessionCount === 0 && (
+          <p
+            data-testid="month-empty"
+            class="border-line-strong bg-raised text-ink-muted mb-8 rounded-[10px] border border-dashed px-5 py-6 text-center text-[15px]"
+          >
+            W tym miesiącu nie ma jeszcze żadnej sesji. Wybierz tydzień i wygeneruj plan na stronie
+            <a href="/dashboard" class="text-brand mx-1 font-medium underline underline-offset-2">
+              Plan
+            </a>
+            .
+          </p>
+        )}
+
+        <div class="overflow-x-auto">
+          <div class="min-w-[680px]">
+            <div class="text-ink-faint mb-2 grid grid-cols-7 gap-2 text-[11px] font-medium tracking-wide uppercase">
+              {DAY_HEADERS.map((name) => (
+                <span>{name}</span>
+              ))}
+            </div>
+
+            <div class="flex flex-col gap-2">
+              {month.weeks.map((week) => (
+                <div class="grid grid-cols-7 gap-2">
+                  {week.map((day) => {
+                    const used =
+                      day.availableMinutes === 0
+                        ? 0
+                        : Math.min(
+                            100,
+                            Math.round(((day.plannedMinutes + day.completedMinutes) / day.availableMinutes) * 100),
+                          );
+
+                    return (
+                      <a
+                        href={`/dashboard?week=${startOfWeek(day.date)}`}
+                        data-testid="calendar-day"
+                        data-date={day.date}
+                        data-in-month={String(day.inMonth)}
+                        title={`Otwórz tydzień z ${day.date}`}
+                        class:list={[
+                          "flex min-h-[104px] flex-col rounded-[10px] border p-2 transition-colors",
+                          day.isToday
+                            ? "border-brand-line bg-brand-soft"
+                            : "border-line bg-raised hover:border-line-strong",
+                          !day.inMonth ? "opacity-45" : "",
+                        ]}
+                      >
+                        <div class="mb-1.5 flex items-baseline justify-between gap-1">
+                          <span
+                            class:list={["tnum text-[12px]", day.isToday ? "text-brand font-semibold" : "font-medium"]}
+                          >
+                            {day.date.slice(8)}
+                          </span>
+                          {day.availableMinutes > 0 && (
+                            <span class="tnum text-ink-faint text-[10px]">{day.availableMinutes} min</span>
+                          )}
+                        </div>
+
+                        {day.availableMinutes > 0 && (
+                          <div class="bg-sunken mb-1.5 h-1 w-full overflow-hidden rounded-full">
+                            <div class="bg-brand h-full rounded-full" style={`width: ${used}%`} />
+                          </div>
+                        )}
+
+                        {day.sessions.length === 0 ? (
+                          <span class="text-ink-faint text-[10px]">
+                            {day.availableMinutes === 0 ? "wolne" : "brak sesji"}
+                          </span>
+                        ) : (
+                          <ul class="flex flex-col gap-1">
+                            {day.sessions.slice(0, 3).map((session) => (
+                              <li
+                                class:list={[
+                                  "truncate rounded px-1 py-0.5 text-[10px] leading-tight",
+                                  session.status === "done"
+                                    ? "bg-brand-soft text-brand"
+                                    : session.status === "skipped"
+                                      ? "text-ink-faint line-through"
+                                      : "bg-sunken text-ink-muted",
+                                ]}
+                                title={`${session.topicTitle} — ${session.minutes} min`}
+                              >
+                                {session.topicTitle}
+                              </li>
+                            ))}
+                            {day.sessions.length > 3 && (
+                              <li class="text-ink-faint text-[10px]">+{day.sessions.length - 3} więcej</li>
+                            )}
+                          </ul>
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <p class="text-ink-faint mt-6 text-[13px]">
+          Kliknij dowolny dzień, żeby otworzyć jego tydzień w widoku Plan. Plan generuje się tygodniami, bo reguła
+          rozdziela minuty zadeklarowane na dany tydzień.
+        </p>
+      </>
+    )
+  }
+</AppLayout>

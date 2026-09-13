@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, differenceInDays, parseIsoDate, startOfWeek, toIsoDate, weekdayIndex } from "./date";
+import {
+  addDays,
+  addMonths,
+  differenceInDays,
+  endOfMonth,
+  parseIsoDate,
+  startOfMonth,
+  startOfWeek,
+  toIsoDate,
+  weekdayIndex,
+} from "./date";
 
 describe("parseIsoDate", () => {
   it("parses a calendar date at UTC midnight", () => {
@@ -63,5 +73,47 @@ describe("startOfWeek", () => {
     expect(startOfWeek("2026-09-17")).toBe("2026-09-14");
     expect(startOfWeek("2026-09-20")).toBe("2026-09-14"); // Sunday belongs to the week before
     expect(startOfWeek("2026-09-14")).toBe("2026-09-14");
+  });
+});
+
+describe("startOfMonth", () => {
+  it("returns the first day of the containing month", () => {
+    expect(startOfMonth("2026-09-13")).toBe("2026-09-01");
+    expect(startOfMonth("2026-09-01")).toBe("2026-09-01");
+    expect(startOfMonth("2026-12-31")).toBe("2026-12-01");
+  });
+});
+
+describe("endOfMonth", () => {
+  it("returns the last day of the containing month", () => {
+    expect(endOfMonth("2026-09-13")).toBe("2026-09-30");
+    expect(endOfMonth("2026-01-01")).toBe("2026-01-31");
+  });
+
+  it("knows February in a leap year and outside one", () => {
+    expect(endOfMonth("2024-02-10")).toBe("2024-02-29");
+    expect(endOfMonth("2026-02-10")).toBe("2026-02-28");
+  });
+});
+
+describe("addMonths", () => {
+  it("moves forward and backward", () => {
+    expect(addMonths("2026-09-13", 1)).toBe("2026-10-13");
+    expect(addMonths("2026-09-13", -1)).toBe("2026-08-13");
+  });
+
+  it("crosses year boundaries", () => {
+    expect(addMonths("2026-12-15", 1)).toBe("2027-01-15");
+    expect(addMonths("2026-01-15", -1)).toBe("2025-12-15");
+  });
+
+  it("clamps onto the last day when the target month is shorter", () => {
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
+    expect(addMonths("2024-01-31", 1)).toBe("2024-02-29");
+    expect(addMonths("2026-03-31", -1)).toBe("2026-02-28");
+  });
+
+  it("is a no-op for zero", () => {
+    expect(addMonths("2026-09-13", 0)).toBe("2026-09-13");
   });
 });

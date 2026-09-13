@@ -45,3 +45,30 @@ export function weekdayIndex(value: IsoDate): Weekday {
 export function startOfWeek(value: IsoDate): IsoDate {
   return addDays(value, -weekdayIndex(value));
 }
+
+/** The first day of the month containing `value`. */
+export function startOfMonth(value: IsoDate): IsoDate {
+  return `${value.slice(0, 7)}-01`;
+}
+
+/** The last day of the month containing `value`. */
+export function endOfMonth(value: IsoDate): IsoDate {
+  return addDays(addMonths(startOfMonth(value), 1), -1);
+}
+
+/**
+ * Moves by whole months, clamping onto the last day when the target month is
+ * shorter. Adding a month to 31 January lands on 28 or 29 February rather than
+ * spilling into March, which is what a month-by-month calendar pager needs.
+ */
+export function addMonths(value: IsoDate, months: number): IsoDate {
+  const date = parseIsoDate(value);
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + months;
+  const day = date.getUTCDate();
+
+  const target = new Date(Date.UTC(year, month, 1));
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+
+  return toIsoDate(new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(day, lastDay))));
+}

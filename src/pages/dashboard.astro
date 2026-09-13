@@ -152,15 +152,46 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                   <span class="tnum text-ink-faint text-[11px]">{dayOfMonth(day.date)}</span>
                 </header>
 
-                <div class="mb-3">
-                  <div class="bg-sunken h-1 w-full overflow-hidden rounded-full">
-                    <div class="bg-brand h-full rounded-full" style={`width: ${used}%`} />
-                  </div>
-                  <p class="tnum text-ink-faint mt-1.5 text-[11px]">
-                    <span data-testid="day-total">{day.totalMinutes}</span>
-                    {` / ${day.availableMinutes} min`}
-                  </p>
-                </div>
+                {/* The usage line doubles as the control for the evening's budget: open
+                    it and set the minutes without leaving the week. A details element
+                    keeps that working with no client JavaScript. */}
+                <details class="group/day mb-3">
+                  <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <div class="bg-sunken h-1 w-full overflow-hidden rounded-full">
+                      <div class="bg-brand h-full rounded-full" style={`width: ${used}%`} />
+                    </div>
+                    <p class="tnum text-ink-faint group-hover/day:text-ink-muted mt-1.5 text-[11px] transition-colors">
+                      <span data-testid="day-total">{day.totalMinutes}</span>
+                      {` / ${day.availableMinutes} min`}
+                      <span class="ml-1 underline underline-offset-2 opacity-0 transition-opacity group-open/day:hidden group-hover/day:opacity-100">
+                        zmień
+                      </span>
+                    </p>
+                  </summary>
+
+                  <form method="POST" action="/api/availability" class="mt-2 flex items-center gap-1">
+                    <input type="hidden" name="weekday" value={index} />
+                    <input type="hidden" name="week" value={week.weekStart} />
+                    <input
+                      type="number"
+                      name="minutes"
+                      value={day.availableMinutes}
+                      min="0"
+                      max="1440"
+                      step="1"
+                      aria-label={`${dayNames[index]} — dostępne minuty`}
+                      data-testid={`day-minutes-${index}`}
+                      class="tnum border-line bg-raised text-ink focus:border-brand w-full min-w-0 rounded-[10px] border px-2 py-1 text-[11px] transition-colors focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      data-testid={`save-day-${index}`}
+                      class="border-brand-line text-brand hover:bg-brand-soft shrink-0 rounded-[10px] border px-2 py-1 text-[11px] font-medium transition-colors active:translate-y-px"
+                    >
+                      OK
+                    </button>
+                  </form>
+                </details>
 
                 {day.sessions.length === 0 ? (
                   <p class="text-ink-faint text-[12px]">
@@ -274,3 +305,14 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
     )
   }
 </AppLayout>
+
+<script>
+  // The day-card minute fields open with a value already in them, so clicking in
+  // and typing would append to it. Selecting on focus makes the existing value a
+  // suggestion. The form posts identically without this script.
+  document.querySelectorAll("input[type=number]").forEach((field) => {
+    field.addEventListener("focus", () => {
+      (field as HTMLInputElement).select();
+    });
+  });
+</script>

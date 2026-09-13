@@ -1,4 +1,4 @@
-import { addDays, startOfWeek, weekdayIndex } from "@/domain/date";
+import { addDays, endOfMonth, startOfMonth, startOfWeek, weekdayIndex } from "@/domain/date";
 import { generatePlan, remainingCapacity, remainingMinutes } from "@/domain/scheduler";
 import type { Availability, IsoDate, SessionStatus, Topic } from "@/domain/types";
 import {
@@ -159,5 +159,101 @@ export async function loadWeekView(db: Db, weekStart: IsoDate): Promise<WeekView
       .filter((session) => session.status === "done")
       .reduce((sum, session) => sum + session.minutes, 0),
     hasPlan: views.length > 0,
+  };
+}
+
+export interface MonthDay {
+  date: IsoDate;
+  inMonth: boolean;
+  isToday: boolean;
+  sessions: SessionView[];
+  plannedMinutes: number;
+  completedMinutes: number;
+  availableMinutes: number;
+}
+
+export interface MonthView {
+  monthStart: IsoDate;
+  monthEnd: IsoDate;
+  weeks: MonthDay[][];
+  plannedMinutes: number;
+  completedMinutes: number;
+  availableMinutes: number;
+  sessionCount: number;
+}
+
+/**
+ * A whole month laid out as calendar weeks.
+ *
+ * The grid always starts on a Monday and ends on a Sunday, so it usually spills
+ * into the neighbouring months; those days are marked `inMonth: false` and are
+ * rendered muted rather than dropped, because a week that is half-visible reads
+ * as a rendering fault.
+ *
+ * This is a read-only view. Generating a plan stays a per-week action — the
+ * scheduling rule allocates against one week's declared availability, and
+ * nothing here changes that.
+ */
+export async function loadMonthView(db: Db, anyDayInMonth: IsoDate, today: IsoDate = todayIso()): Promise<MonthView> {
+  const monthStart = startOfMonth(anyDayInMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const gridStart = startOfWeek(monthStart);
+  const gridEnd = addDays(startOfWeek(monthEnd), 6);
+
+  const [topicRows, availability, sessionRows] = await Promise.all([
+    listTopics(db),
+    getAvailability(db),
+    listSessionsInRange(db, gridStart, gridEnd),
+  ]);
+
+  const titleById = new Map(topicRows.map(toTopic).map((topic) => [topic.id, topic.title]));
+
+  const views: SessionView[] = sessionRows.map((row: SessionRow) => ({
+    id: row.id,
+    topicId: row.topic_id,
+    topicTitle: titleById.get(row.topic_id) ?? "Usunięty temat",
+    date: row.scheduled_date,
+    minutes: row.minutes,
+    status: row.status,
+  }));
+
+  const dayCount = (Date.parse(`${gridEnd}T00:00:00.000Z`) - Date.parse(`${gridStart}T00:00:00.000Z`)) / 86_400_000 + 1;
+
+  const days: MonthDay[] = Array.from({ length: dayCount }, (_, offset) => {
+    const date = addDays(gridStart, offset);
+    const sessions = views
+      .filter((session) => session.date === date)
+      .sort((a, b) => a.topicTitle.localeCompare(b.topicTitle, "pl"));
+
+    return {
+      date,
+      inMonth: date >= monthStart && date <= monthEnd,
+      isToday: date === today,
+      sessions,
+      plannedMinutes: sessions
+        .filter((session) => session.status === "planned")
+        .reduce((sum, session) => sum + session.minutes, 0),
+      completedMinutes: sessions
+        .filter((session) => session.status === "done")
+        .reduce((sum, session) => sum + session.minutes, 0),
+      availableMinutes: availability[weekdayIndex(date)] ?? 0,
+    };
+  });
+
+  const weeks: MonthDay[][] = [];
+  for (let index = 0; index < days.length; index += 7) {
+    weeks.push(days.slice(index, index + 7));
+  }
+
+  const inMonth = days.filter((day) => day.inMonth);
+
+  return {
+    monthStart,
+    monthEnd,
+    weeks,
+    plannedMinutes: inMonth.reduce((sum, day) => sum + day.plannedMinutes, 0),
+    completedMinutes: inMonth.reduce((sum, day) => sum + day.completedMinutes, 0),
+    availableMinutes: inMonth.reduce((sum, day) => sum + day.availableMinutes, 0),
+    sessionCount: inMonth.reduce((sum, day) => sum + day.sessions.length, 0),
   };
 }

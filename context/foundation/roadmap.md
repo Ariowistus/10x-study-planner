@@ -69,6 +69,21 @@ If only one thing works, it is this.
   cannot be produced on the development machine.
 - **Status**: done
 
+### S-06 — Set an evening in place, and see the month
+- **Outcome**: A learner fixes one evening's minutes from the day card on the
+  plan, without going to Tematy, and reads the whole month at a glance in a
+  calendar view.
+- **PRD refs**: FR-003, FR-006, US-007
+- **Change ID**: S-06-day-editing-and-calendar
+- **Prerequisites**: S-02, S-04
+- **Risk**: Low. The calendar is a read-only projection of data the week view
+  already loads, and the day editor reuses the availability row rather than
+  introducing a second source of truth.
+- **Status**: done
+- Added after the MVP shipped, on 2026-09-13, from use: the plan view showed
+  empty evenings but offered no way to fill them, and nothing gave a view wider
+  than seven days.
+
 ## Foundations
 
 ### F-01 — Project skeleton with authentication

@@ -37,6 +37,16 @@ export const availabilitySchema = z.object({
     .length(7, "Dostępność musi obejmować wszystkie siedem dni tygodnia"),
 });
 
+/** One weekday at a time, as posted from a day card on the plan. */
+export const availabilityDaySchema = z.object({
+  weekday: z.coerce.number().int().min(0, "Nieznany dzień tygodnia").max(6, "Nieznany dzień tygodnia"),
+  minutes: z.coerce
+    .number()
+    .int("Minuty muszą być pełną liczbą")
+    .min(0, "Minuty nie mogą być ujemne")
+    .max(1440, "Doba ma 1440 minut"),
+});
+
 export const generatePlanSchema = z.object({
   weekStart: isoDate.optional(),
 });

@@ -251,3 +251,93 @@ test.describe("isolation", () => {
     await expect(page.getByTestId("topics-empty")).toBeVisible();
   });
 });
+
+test.describe("setting an evening from the plan", () => {
+  // US-007 revisited: the learner should not have to leave the week they are
+  // looking at to fix the minutes for one evening.
+  test("saves a day's minutes from its card and plans against them", async ({ page }) => {
+    await registerAndSignIn(page);
+    await addTopic(page, { title: "Adresowanie IPv6", estimateMinutes: 90, priority: 4 });
+
+    const week = nextWeekMonday();
+    await page.goto(`/dashboard?week=${week}`);
+
+    const monday = page.getByTestId("day-card").first();
+    await expect(monday).toContainText("0 / 0 min");
+
+    await monday.locator("summary").click();
+    await page.getByTestId("day-minutes-0").fill("90");
+    await page.getByTestId("save-day-0").click();
+
+    await expect(page.getByTestId("flash-ok")).toContainText("Zapisano minuty");
+    await expect(page.getByTestId("day-card").first()).toContainText("0 / 90 min");
+
+    // The declared minutes are real: the planner now has an evening to use.
+    await page.getByTestId("generate-plan").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Zaplanowano 1 sesję");
+    await expect(page.getByTestId("session")).toHaveCount(1);
+  });
+
+  test("rejects minutes longer than a day", async ({ page }) => {
+    await registerAndSignIn(page);
+    await page.goto(`/dashboard?week=${nextWeekMonday()}`);
+
+    const response = await page.request.post("/api/availability", {
+      form: { weekday: "0", minutes: "2000", week: nextWeekMonday() },
+      headers: { origin: new URL(page.url()).origin },
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(302);
+    expect(response.headers().location).toContain("error=");
+  });
+});
+
+test.describe("calendar", () => {
+  test("is closed to an unauthenticated visitor", async ({ page }) => {
+    await page.goto("/calendar");
+    await expect(page).toHaveURL(/\/auth\/signin/);
+  });
+
+  test("shows the month, moves between months, and opens a day's week", async ({ page }) => {
+    await registerAndSignIn(page);
+    await page.goto("/calendar");
+
+    const name = page.getByTestId("month-name");
+    await expect(name).not.toBeEmpty();
+
+    // A month grid always covers whole weeks, so it never shows fewer than 28
+    // cells and never more than six rows of seven.
+    const cells = page.getByTestId("calendar-day");
+    const count = await cells.count();
+    expect(count).toBeGreaterThanOrEqual(28);
+    expect(count).toBeLessThanOrEqual(42);
+    expect(count % 7).toBe(0);
+
+    const shown = await name.textContent();
+    await page.getByTestId("next-month").click();
+    await expect(name).not.toHaveText(shown ?? "");
+
+    await page.getByTestId("previous-month").click();
+    await expect(name).toHaveText(shown ?? "");
+
+    const day = page.locator('[data-testid="calendar-day"][data-in-month="true"]').first();
+    await day.click();
+    await expect(page).toHaveURL(/\/dashboard\?week=\d{4}-\d{2}-\d{2}/);
+  });
+
+  test("shows a session on the calendar once a week is planned", async ({ page }) => {
+    await registerAndSignIn(page);
+    await setAvailability(page, [60, 0, 0, 0, 0, 0, 0]);
+    await addTopic(page, { title: "Protokoły trasowania", estimateMinutes: 60, priority: 4 });
+
+    const week = nextWeekMonday();
+    await page.goto(`/dashboard?week=${week}`);
+    await page.getByTestId("generate-plan").click();
+    await expect(page.getByTestId("session")).toHaveCount(1);
+
+    await page.goto(`/calendar?month=${week}`);
+    const monday = page.locator(`[data-testid="calendar-day"][data-date="${week}"]`);
+    await expect(monday).toContainText("Protokoły trasowania");
+  });
+});

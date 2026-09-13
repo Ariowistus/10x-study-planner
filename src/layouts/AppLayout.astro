@@ -4,7 +4,7 @@ import "../styles/global.css";
 interface Props {
   title: string;
   subtitle?: string;
-  active: "dashboard" | "topics";
+  active: "dashboard" | "calendar" | "topics";
 }
 
 const { title, subtitle, active } = Astro.props;
@@ -36,6 +36,7 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
 
         <nav class="flex items-center gap-1" aria-label="Główna">
           <a href="/dashboard" class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a>
+          <a href="/calendar" class:list={`${navBase} ${active === "calendar" ? navOn : navOff}`}>Kalendarz</a>
           <a href="/topics" class:list={`${navBase} ${active === "topics" ? navOn : navOff}`}>Tematy</a>
         </nav>
 
