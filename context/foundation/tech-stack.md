@@ -11,21 +11,26 @@ has_background_jobs: false
 
 # Tech Stack — 10x Study Planner
 
+**Verification update, 2026-09-13:** both Node and Cloudflare builds passed
+locally on Windows / Node 24.19.0. References below to the `workerd` failure are
+the historical reason for retaining two adapters. The declared CI runtime
+remains Node 22; no adapter or dependency migration was performed.
+
 - **Input**: `context/foundation/prd.md`
 - **Date**: 2026-09-10
 
 ## Selection
 
-| Layer | Choice | Version |
-| --- | --- | --- |
-| Meta-framework and API | Astro | 6 |
-| Interactive UI | React | 19 |
-| Type system | TypeScript | 5 |
-| Styling | Tailwind CSS | 4 |
-| Database and auth | Supabase (PostgreSQL) | hosted |
-| Unit tests | Vitest | 3 |
-| End-to-end tests | Playwright | 1 |
-| Deployment | Cloudflare Workers | via CI |
+| Layer                  | Choice                | Version |
+| ---------------------- | --------------------- | ------- |
+| Meta-framework and API | Astro                 | 6       |
+| Interactive UI         | React                 | 19      |
+| Type system            | TypeScript            | 5       |
+| Styling                | Tailwind CSS          | 4       |
+| Database and auth      | Supabase (PostgreSQL) | hosted  |
+| Unit tests             | Vitest                | 3       |
+| End-to-end tests       | Playwright            | 1       |
+| Deployment             | Cloudflare Workers    | via CI  |
 
 The starter `10x-astro-starter` supplies the first five rows already wired
 together, including working email-and-password authentication and route
@@ -71,12 +76,12 @@ learner signs in, creates a topic, generates a plan and completes a session.
 
 ## Agent-friendliness gates
 
-| Gate | Verdict | Note |
-| --- | --- | --- |
-| Typed | pass | TypeScript across pages, endpoints and domain logic |
-| Convention-based | pass | Astro's directory conventions plus the starter's layout |
-| Popular in training data | pass | React, TypeScript and Tailwind are heavily represented; Astro 6 is newer and is compensated by pinning versions and referencing docs |
-| Well-documented | pass | current official documentation for every layer |
+| Gate                     | Verdict | Note                                                                                                                                 |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Typed                    | pass    | TypeScript across pages, endpoints and domain logic                                                                                  |
+| Convention-based         | pass    | Astro's directory conventions plus the starter's layout                                                                              |
+| Popular in training data | pass    | React, TypeScript and Tailwind are heavily represented; Astro 6 is newer and is compensated by pinning versions and referencing docs |
+| Well-documented          | pass    | current official documentation for every layer                                                                                       |
 
 ## Deviation from the recommended path
 
@@ -95,11 +100,11 @@ entrypoint. The full decision record, including the risk this carries, is in
 
 ## Commands
 
-| Purpose | Command |
-| --- | --- |
-| Development server | `npm run dev` |
-| Production build (Node) | `npm run build` |
-| Production build (Cloudflare) | `npm run build:cf` |
-| Lint | `npm run lint` |
-| Unit tests | `npm run test:unit` |
-| End-to-end tests | `npm run test:e2e` |
+| Purpose                       | Command             |
+| ----------------------------- | ------------------- |
+| Development server            | `npm run dev`       |
+| Production build (Node)       | `npm run build`     |
+| Production build (Cloudflare) | `npm run build:cf`  |
+| Lint                          | `npm run lint`      |
+| Unit tests                    | `npm run test:unit` |
+| End-to-end tests              | `npm run test:e2e`  |

@@ -246,10 +246,21 @@ export async function insertManualSession(
 
 /** Removes a single session, whoever placed it. */
 export async function deleteSession(db: Db, sessionId: string): Promise<void> {
-  const { error } = await db.from("sessions").delete().eq("id", sessionId);
+  // Completed minutes must only change via set_session_status. Restrict the
+  // delete itself, so a concurrent completion cannot leave phantom progress.
+  const { data, error } = await db
+    .from("sessions")
+    .delete()
+    .eq("id", sessionId)
+    .neq("status", "done")
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     throw new RepositoryError(`Nie udało się usunąć sesji: ${error.message}`);
+  }
+  if (data === null) {
+    throw new RepositoryError("Nie usunięto sesji. Jeśli jest ukończona, najpierw cofnij jej ukończenie.", 409);
   }
 }
 

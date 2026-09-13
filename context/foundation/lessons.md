@@ -184,3 +184,15 @@ found. This file grows by addition; earlier entries are not rewritten.
   fail. A test that passes in both states documents nothing and will not stop
   the bug from returning.
 - **Applies to**: implement, tdd, e2e, impl-review
+
+## Run adapter builds and development-server verification sequentially
+
+- **Context**: Submission polish, 2026-09-13.
+- **Problem**: A Node dev server remained running while a production build
+  rewrote Vite's dependency cache and Astro-generated files. Subsequent screenshot
+  runs could render HTML but timed out waiting for React hydration. The same
+  scenarios passed against a freshly built production server.
+- **Rule**: Stop the dev server before switching adapters or producing release
+  builds in the same checkout. Run visual checks against a fresh production
+  server, then restart development if needed. Do not fix this with longer waits.
+- **Applies to**: implement, e2e, impl-review

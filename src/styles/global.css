@@ -28,7 +28,7 @@
 
   --ink: #1a1815;
   --ink-muted: #6f6a63;
-  --ink-faint: #9c968d;
+  --ink-faint: #756e65;
 
   --brand: #0f6b5c;
   --brand-hover: #0b5348;
@@ -52,7 +52,7 @@
 
     --ink: #f4f2ef;
     --ink-muted: #a39c93;
-    --ink-faint: #756e66;
+    --ink-faint: #aaa198;
 
     --brand: #35a894;
     --brand-hover: #4cc0ab;
@@ -201,7 +201,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -238,5 +237,123 @@
   :focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
+  }
+}
+
+/* The study desk: one clear next action beside a compact account of the week. */
+.study-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 20px;
+}
+
+.focus-panel {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  min-width: 0;
+  padding: 32px;
+  border: 1px solid var(--brand-line);
+  border-radius: 16px;
+  background: var(--brand-soft);
+}
+
+.focus-clock {
+  flex-shrink: 0;
+  text-align: center;
+  padding-left: 24px;
+  border-left: 1px solid var(--brand-line);
+}
+
+.focus-complete,
+.timer-toggle,
+.timer-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.focus-complete,
+.timer-reset {
+  border: 1px solid var(--brand-line);
+  background: var(--surface-raised);
+  color: var(--brand);
+}
+
+.timer-toggle {
+  background: var(--brand);
+  color: var(--brand-contrast);
+}
+
+.timer-toggle:hover {
+  background: var(--brand-hover);
+}
+
+.week-summary {
+  min-width: 0;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-raised);
+}
+
+.week-grid article {
+  min-width: 0;
+  min-height: 160px;
+  border-top-width: 3px;
+}
+
+.week-grid article p {
+  overflow-wrap: anywhere;
+}
+
+.week-grid button {
+  min-height: 32px;
+}
+
+@media (max-width: 1023px) {
+  .study-overview {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  .focus-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
+    padding: 24px;
+  }
+
+  .focus-clock {
+    padding-top: 20px;
+    padding-left: 0;
+    border-top: 1px solid var(--brand-line);
+    border-left: 0;
+  }
+
+  .focus-clock [role="status"] {
+    margin-inline: auto;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .study-overview {
+    animation: desk-appear 350ms ease-out both;
+  }
+  @keyframes desk-appear {
+    from {
+      transform: translateY(8px);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isIsoDate } from "../domain/date";
 
 /**
  * Request validation for the API surface.
@@ -11,7 +12,7 @@ import { z } from "zod";
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Oczekiwano daty w formacie RRRR-MM-DD")
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "To nie jest poprawna data kalendarzowa");
+  .refine(isIsoDate, "To nie jest poprawna data kalendarzowa");
 
 export const topicInputSchema = z.object({
   title: z.string().trim().min(1, "Tytuł jest wymagany").max(200, "Tytuł jest za długi"),

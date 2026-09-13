@@ -1,5 +1,9 @@
 # Bootstrap Verification
 
+**Follow-up, 2026-09-13:** the Cloudflare build succeeded locally on Windows /
+Node 24.19.0. The failure recorded here is the original bootstrap result; it
+does not block the submission build. Both adapters remain supported.
+
 - **Date**: 2026-09-10
 - **Starter**: `przeprogramowani/10x-astro-starter`
 - **Target**: `context/foundation/tech-stack.md`
@@ -9,13 +13,13 @@ so the reasons are still available later.
 
 ## Phase 1 — pre-scaffold
 
-| Check | Status | Note |
-| --- | --- | --- |
-| Starter is current | **passed** | Astro 6, React 19, Tailwind 4, Supabase SSR, all on current majors |
-| Starter provides auth | **passed** | sign-in, sign-up, sign-out, middleware route protection |
-| Starter provides CI | **passed** | a GitHub Actions workflow exists; extended later |
-| Toolchain present | **passed** | Node 24.19, npm 11.17, git 2.53, GitHub CLI 2.86 |
-| Docker present | **failed** | not installed; a local Supabase stack is therefore unavailable on this machine |
+| Check                 | Status     | Note                                                                           |
+| --------------------- | ---------- | ------------------------------------------------------------------------------ |
+| Starter is current    | **passed** | Astro 6, React 19, Tailwind 4, Supabase SSR, all on current majors             |
+| Starter provides auth | **passed** | sign-in, sign-up, sign-out, middleware route protection                        |
+| Starter provides CI   | **passed** | a GitHub Actions workflow exists; extended later                               |
+| Toolchain present     | **passed** | Node 24.19, npm 11.17, git 2.53, GitHub CLI 2.86                               |
+| Docker present        | **failed** | not installed; a local Supabase stack is therefore unavailable on this machine |
 
 Docker being absent is why the end-to-end suite runs its database in CI rather
 than locally.
@@ -26,28 +30,28 @@ The starter was cloned rather than generated, since it is itself the
 authoritative starting point for this course. Its git history was removed and a
 fresh repository initialised, so the project owns its own history.
 
-| Step | Status | Note |
-| --- | --- | --- |
-| Clone | **passed** | 49 files |
-| `npm install` | **warned** | npm withheld five install scripts pending approval |
+| Step                    | Status     | Note                                                                              |
+| ----------------------- | ---------- | --------------------------------------------------------------------------------- |
+| Clone                   | **passed** | 49 files                                                                          |
+| `npm install`           | **warned** | npm withheld five install scripts pending approval                                |
 | Approve install scripts | **passed** | `esbuild`, `sharp`, `supabase`, `workerd` approved and recorded in `package.json` |
-| Rename project | **passed** | `package.json`, `wrangler.jsonc`, `supabase/config.toml` |
+| Rename project          | **passed** | `package.json`, `wrangler.jsonc`, `supabase/config.toml`                          |
 
 The withheld scripts mattered: without them `esbuild` and `workerd` have no
 binaries and no build can run at all.
 
 ## Phase 3 — post-scaffold
 
-| Check | Status | Note |
-| --- | --- | --- |
-| `astro sync` | **passed** | |
-| `astro check` | **passed** | 0 errors |
-| `npm run lint` | **passed** | after fixes described below |
-| `npm run build` (Node) | **passed** | |
-| `npm run build` (Cloudflare) | **failed** | see below |
-| `npm audit` | **warned** | 27 advisories reported, 2 critical, all in the transitive development tree |
-| Dev server smoke test | **passed** | `/` 200, `/auth/signin` 200, `/dashboard` 302 to sign-in |
-| Playwright pipeline | **passed** | build, serve, browser and the access-control specs all run locally |
+| Check                        | Status     | Note                                                                       |
+| ---------------------------- | ---------- | -------------------------------------------------------------------------- |
+| `astro sync`                 | **passed** |                                                                            |
+| `astro check`                | **passed** | 0 errors                                                                   |
+| `npm run lint`               | **passed** | after fixes described below                                                |
+| `npm run build` (Node)       | **passed** |                                                                            |
+| `npm run build` (Cloudflare) | **failed** | see below                                                                  |
+| `npm audit`                  | **warned** | 27 advisories reported, 2 critical, all in the transitive development tree |
+| Dev server smoke test        | **passed** | `/` 200, `/auth/signin` 200, `/dashboard` 302 to sign-in                   |
+| Playwright pipeline          | **passed** | build, serve, browser and the access-control specs all run locally         |
 
 ### The Cloudflare build failure
 
@@ -92,9 +96,9 @@ page that should be revisited after submission.
 
 ## Outstanding
 
-| Item | Blocked on |
-| --- | --- |
-| Apply the schema migration | a Supabase project |
-| Run the full end-to-end suite locally | the same, or Docker |
-| First deployment | a Cloudflare account and API token |
-| Course skill packs | clicking the sign-in link the course CLI sends |
+| Item                                  | Blocked on                                     |
+| ------------------------------------- | ---------------------------------------------- |
+| Apply the schema migration            | a Supabase project                             |
+| Run the full end-to-end suite locally | the same, or Docker                            |
+| First deployment                      | a Cloudflare account and API token             |
+| Course skill packs                    | clicking the sign-in link the course CLI sends |

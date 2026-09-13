@@ -1,8 +1,9 @@
 ---
 import AppLayout from "@/layouts/AppLayout.astro";
+import FocusSession from "@/components/FocusSession";
 import { createClient } from "@/lib/supabase";
 import { currentWeekStart, loadWeekView, todayIso, type WeekView } from "@/lib/planning";
-import { addDays, startOfWeek } from "@/domain/date";
+import { addDays, isIsoDate, startOfWeek } from "@/domain/date";
 
 export const prerender = false;
 
@@ -10,7 +11,7 @@ export const prerender = false;
 // PROTECTED_ROUTES and the middleware redirects them to sign-in.
 
 const requestedWeek = Astro.url.searchParams.get("week");
-const weekStart = requestedWeek ? startOfWeek(requestedWeek) : currentWeekStart();
+const weekStart = isIsoDate(requestedWeek) ? startOfWeek(requestedWeek) : currentWeekStart();
 
 const db = createClient(Astro.request.headers, Astro.cookies);
 
@@ -28,6 +29,13 @@ if (db) {
 }
 
 const today = todayIso();
+const nextSession = week?.days
+  .flatMap((day) => day.sessions)
+  .find((session) => session.status === "planned" && session.date >= today);
+const weeklyBudget = week?.availability.reduce((sum, value) => sum + value, 0) ?? 0;
+const remainingWork = week?.topics.reduce((sum, entry) => sum + entry.remainingMinutes, 0) ?? 0;
+const completedCount =
+  week?.days.flatMap((day) => day.sessions).filter((session) => session.status === "done").length ?? 0;
 const dayNames = ["Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela"];
 const dayShort = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
 
@@ -75,6 +83,60 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
   {
     week && (
       <>
+        <div class="study-overview mb-8">
+          {nextSession ? (
+            <FocusSession
+              client:load
+              id={nextSession.id}
+              title={nextSession.topicTitle}
+              date={nextSession.date}
+              minutes={nextSession.minutes}
+              weekStart={week.weekStart}
+            />
+          ) : (
+            <section class="focus-panel">
+              <div>
+                <p class="text-brand text-sm font-medium">Miejsce na Twój następny krok</p>
+                <h2 class="mt-3 max-w-lg text-3xl font-semibold tracking-tight">
+                  Dobry plan zaczyna się od jednego tematu.
+                </h2>
+                <p class="text-ink-muted mt-4 max-w-lg text-sm leading-relaxed">
+                  {week.hasPlan
+                    ? "W tym tygodniu nie ma już nadchodzących sesji. Sprawdź postęp lub zaplanuj następny tydzień."
+                    : "Dodaj to, czego chcesz się nauczyć, ustaw dostępny czas i wygeneruj swój tydzień poniżej."}
+                </p>
+                <a href={week.hasPlan ? `/dashboard?week=${nextWeek}` : "/topics"} class="focus-complete mt-5">
+                  {week.hasPlan ? "Zaplanuj kolejny tydzień" : "Dodaj tematy i dostępność"}
+                </a>
+              </div>
+            </section>
+          )}
+          <aside class="week-summary" aria-label="Podsumowanie tygodnia">
+            <p class="text-ink-muted text-sm font-medium">Twój rytm nauki</p>
+            <p class="tnum mt-3 text-4xl font-semibold tracking-tight">{formatMinutes(week.completedMinutes)}</p>
+            <p class="text-ink-faint mt-1 text-xs">ukończona nauka w wybranym tygodniu</p>
+            <dl class="mt-6 space-y-3 text-sm">
+              <div class="flex justify-between gap-3">
+                <>
+                  <dt class="text-ink-muted">Ukończone sesje</dt>
+                  <dd class="tnum font-medium">{completedCount}</dd>
+                </>
+              </div>
+              <div class="flex justify-between gap-3">
+                <>
+                  <dt class="text-ink-muted">Budżet tygodnia</dt>
+                  <dd class="tnum font-medium">{formatMinutes(weeklyBudget)}</dd>
+                </>
+              </div>
+              <div class="flex justify-between gap-3">
+                <>
+                  <dt class="text-ink-muted">Do końca tematów</dt>
+                  <dd class="tnum font-medium">{formatMinutes(remainingWork)}</dd>
+                </>
+              </div>
+            </dl>
+          </aside>
+        </div>
         <section class="border-line mb-10 flex flex-wrap items-end justify-between gap-6 border-b pb-6">
           <div>
             <p class="text-ink-faint text-[13px]">Tydzień</p>
@@ -94,6 +156,11 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
+            {weekStart !== currentWeekStart() && (
+              <a href="/dashboard" class:list={ghostButton}>
+                Bieżący tydzień
+              </a>
+            )}
             <a href={`/dashboard?week=${previousWeek}`} class:list={ghostButton}>
               Poprzedni
             </a>
@@ -113,6 +180,19 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
           </div>
         </section>
 
+        {week.plannedMinutes > 0 && (
+          <div class="mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+            <h2 class="font-semibold">Rozkład tygodnia</h2>
+            <a
+              href={`/api/plan/export?week=${week.weekStart}`}
+              class="text-brand font-medium underline underline-offset-4"
+              title="Pobiera plik ICS. Sesje są wydarzeniami całodniowymi z czasem nauki w tytule."
+            >
+              Eksport do kalendarza (.ics)
+            </a>
+          </div>
+        )}
+
         {!week.hasPlan && (
           <p
             data-testid="plan-empty"
@@ -126,7 +206,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
           </p>
         )}
 
-        <section class="mb-12 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-7">
+        <section class="week-grid mb-12 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-7">
           {week.days.map((day, index) => {
             const isToday = day.date === today;
             const isPast = day.date < today;
@@ -142,7 +222,7 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                 class:list={[
                   "flex flex-col rounded-[10px] border p-3",
                   isToday ? "border-brand-line bg-brand-soft" : "border-line bg-raised",
-                  isPast && !isToday ? "opacity-55" : "",
+                  isPast && !isToday ? "past-day" : "",
                 ]}
               >
                 <header class="mb-3 flex items-baseline justify-between gap-1">

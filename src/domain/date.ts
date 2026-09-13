@@ -16,10 +16,21 @@ export function parseIsoDate(value: IsoDate): Date {
     throw new Error(`Expected a YYYY-MM-DD date, received "${value}"`);
   }
   const timestamp = Date.parse(`${value}T00:00:00.000Z`);
-  if (Number.isNaN(timestamp)) {
+  if (Number.isNaN(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) {
     throw new Error(`"${value}" is not a valid calendar date`);
   }
   return new Date(timestamp);
+}
+
+/** A route parameter must represent an actual day, not a date JS rolls forward. */
+export function isIsoDate(value: string | null): value is IsoDate {
+  if (value === null) return false;
+  try {
+    parseIsoDate(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function toIsoDate(date: Date): IsoDate {

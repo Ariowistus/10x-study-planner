@@ -5,6 +5,7 @@ import {
   addMonths,
   differenceInDays,
   endOfMonth,
+  isIsoDate,
   parseIsoDate,
   startOfMonth,
   startOfWeek,
@@ -25,13 +26,24 @@ describe("parseIsoDate", () => {
 
   it("rejects a well-formed string that is not a real date", () => {
     expect(() => parseIsoDate("2026-13-01")).toThrow(/valid calendar date/);
+    expect(() => parseIsoDate("2026-02-29")).toThrow(/valid calendar date/);
+    expect(() => parseIsoDate("2026-04-31")).toThrow(/valid calendar date/);
   });
 });
 
 describe("toIsoDate", () => {
   it("round-trips through parseIsoDate", () => {
-    expect(toIsoDate(parseIsoDate("2026-02-29"))).toBe("2026-03-01");
+    expect(toIsoDate(parseIsoDate("2024-02-29"))).toBe("2024-02-29");
     expect(toIsoDate(parseIsoDate("2026-09-14"))).toBe("2026-09-14");
+  });
+});
+
+describe("isIsoDate", () => {
+  it("accepts real days and safely rejects missing or malformed route parameters", () => {
+    expect(isIsoDate("2024-02-29")).toBe(true);
+    for (const value of [null, "", "wrong", "2026-02-29", "2026-13-01"]) {
+      expect(isIsoDate(value)).toBe(false);
+    }
   });
 });
 

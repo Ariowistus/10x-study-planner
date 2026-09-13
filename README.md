@@ -6,10 +6,14 @@ with it.
 
 Built as the course project for 10xDevs 3.0.
 
+**Live application:** [10x Study Planner](https://10x-study-planner.ariowistus.workers.dev)
+
+**Course submission:** [criteria audit and demo walkthrough](docs/submission-audit.md).
+
 ## The idea
 
-Someone preparing for a dated exam usually knows *what* they have to cover. What
-they do badly, especially when tired, is decide *when*. Comfortable topics get
+Someone preparing for a dated exam usually knows _what_ they have to cover. What
+they do badly, especially when tired, is decide _when_. Comfortable topics get
 revisited; large or unpleasant ones slide until there is no time left.
 
 That allocation is a small optimisation problem. This application does it, and
@@ -37,6 +41,10 @@ interleave instead of one of them swallowing the week.
 - Generate a week of dated sessions, never exceeding a day's declared minutes.
 - Mark a session done or skipped and watch topic progress follow.
 - Regenerate a week without losing the record of what was already done.
+- Add sessions directly to a monthly calendar; manual blocks survive regeneration.
+- Find topics by name and filter unfinished or completed work.
+- Start a 25-minute focus timer for the next session, pause it or reset it.
+- Download planned sessions as an `.ics` calendar file with all-day entries.
 
 ## Stack
 
@@ -60,26 +68,27 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_KEY=<anon public key>
 ```
 
-Create a project at [supabase.com](https://supabase.com), then apply
-`supabase/migrations/20260910120000_initial_schema.sql` — either by pasting it
-into the SQL editor in the dashboard, or with `npx supabase db push` against a
-linked project.
+Create a project at [supabase.com](https://supabase.com), then apply **all** SQL
+files in `supabase/migrations/` in filename order, including the manual-session
+migration. Use the dashboard SQL editor or `npx supabase db push` against a linked
+project. Applying only the initial schema leaves the calendar without its
+required `manual` column.
 
 Without these values the application still starts and renders a configuration
 notice instead of crashing.
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | development server |
-| `npm run build` | production build, Node adapter |
-| `npm run build:cf` | production build, Cloudflare adapter |
-| `npm run start` | serve the built application |
-| `npm run lint` | ESLint with type-checked rules |
-| `npm run test:unit` | unit tests |
-| `npm run test:coverage` | unit tests with coverage thresholds |
-| `npm run test:e2e` | end-to-end tests against a production build |
+| Command                 | Purpose                                     |
+| ----------------------- | ------------------------------------------- |
+| `npm run dev`           | development server                          |
+| `npm run build`         | production build, Node adapter              |
+| `npm run build:cf`      | production build, Cloudflare adapter        |
+| `npm run start`         | serve the built application                 |
+| `npm run lint`          | ESLint with type-checked rules              |
+| `npm run test:unit`     | unit tests                                  |
+| `npm run test:coverage` | unit tests with coverage thresholds         |
+| `npm run test:e2e`      | end-to-end tests against a production build |
 
 ## Layout
 
@@ -101,12 +110,11 @@ is why it can be tested exhaustively without a database or a browser.
 The adapter is chosen by `DEPLOY_TARGET`: Node by default, Cloudflare when set
 to `cloudflare`.
 
-The Cloudflare adapter starts the `workerd` runtime through miniflare during
-both `astro dev` and `astro build`, and that runtime aborts with an access
-violation on the machine this was developed on. Local work therefore runs on
-Node, and the Cloudflare build is produced and verified on Linux in CI. The
-application uses no Cloudflare-specific binding, so the two builds differ only
-in their server entrypoint.
+During bootstrap, the Cloudflare adapter's `workerd` process failed on the
+development machine. This is why local work defaults to Node and CI verifies
+both targets. On 2026-09-13, the Cloudflare build also succeeded locally on
+Windows with Node 24.19.0. Both adapters are retained; the application code does
+not depend on Cloudflare-specific APIs. CI continues to use the declared Node 22.
 
 What was checked before settling on this is written down in
 `context/foundation/infrastructure.md`.
@@ -143,6 +151,11 @@ This is a course MVP, and the boundaries are deliberate.
 - A topic whose deadline has passed is treated as maximally urgent rather than
   archived. Whether that is the right default is still open.
 - The week boundary follows the server clock, not the learner's timezone.
+- The focus timer resets on navigation or refresh. It never records progress
+  automatically; completion is an explicit action for the whole session.
+- Calendar export is a downloaded snapshot, not live synchronization. Sessions
+  have no start hour, so entries are all-day with the study duration in the title.
+- Undo a completed session before deleting it, so topic progress stays accurate.
 
 The full list of what was deliberately excluded is under "Non-goals" in
 `context/foundation/prd.md`.

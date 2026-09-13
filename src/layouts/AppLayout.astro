@@ -29,18 +29,35 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
   </head>
   <body class="bg-surface text-ink min-h-[100dvh]">
     <header class="border-line bg-surface/85 sticky top-0 z-30 border-b backdrop-blur-sm">
-      <div class="mx-auto flex h-16 max-w-5xl items-center gap-4 px-4">
+      <div class="app-nav mx-auto flex min-h-16 max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
         <a href="/calendar" class="text-ink text-[15px] font-semibold tracking-tight whitespace-nowrap">
           Study Planner
         </a>
 
-        <nav class="flex items-center gap-1" aria-label="Główna">
-          <a href="/calendar" class:list={`${navBase} ${active === "calendar" ? navOn : navOff}`}>Kalendarz</a>
-          <a href="/dashboard" class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a>
+        <nav class="order-3 flex w-full items-center gap-1 sm:order-none sm:w-auto" aria-label="Główna">
+          <a
+            href="/calendar"
+            aria-current={active === "calendar" ? "page" : undefined}
+            class:list={`${navBase} ${active === "calendar" ? navOn : navOff}`}>Kalendarz</a
+          >
+          <a
+            href="/dashboard"
+            aria-current={active === "dashboard" ? "page" : undefined}
+            class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a
+          >
+          <a
+            href="/topics"
+            aria-current={active === "topics" ? "page" : undefined}
+            class:list={`${navBase} ${active === "topics" ? navOn : navOff}`}>Tematy</a
+          >
         </nav>
 
         <div class="ml-auto flex items-center gap-3">
-          <span data-testid="current-user" class="text-ink-faint hidden text-sm sm:inline">{user?.email}</span>
+          <span
+            data-testid="current-user"
+            class="text-ink-faint hidden max-w-52 truncate text-xs lg:inline"
+            title={user?.email}>{user?.email}</span
+          >
           <form method="POST" action="/api/auth/signout">
             <button
               type="submit"
@@ -53,9 +70,9 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
       </div>
     </header>
 
-    <main class="mx-auto max-w-5xl px-4 pt-10 pb-20">
+    <main id="main-content" class="mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 sm:pt-10">
       <div class="mb-8">
-        <h1 class="text-2xl font-semibold tracking-tight sm:text-[28px]">{title}</h1>
+        <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
         {subtitle && <p class="text-ink-muted mt-1.5 text-[15px]">{subtitle}</p>}
       </div>
 

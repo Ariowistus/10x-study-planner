@@ -13,8 +13,8 @@ says nothing about frameworks, hosting or tooling — those belong to
 
 ## 1. Vision
 
-A learner preparing for a dated exam knows *what* they have to cover but not
-*when*. 10x Study Planner turns a topic list, a deadline and a realistic weekly
+A learner preparing for a dated exam knows _what_ they have to cover but not
+_when_. 10x Study Planner turns a topic list, a deadline and a realistic weekly
 budget of evening minutes into a concrete dated plan, and keeps that plan honest
 as real life interferes with it.
 
@@ -45,24 +45,26 @@ managers planning on someone else's behalf.
 
 ## 4. Success criteria
 
-| # | Criterion | How it is checked |
-| --- | --- | --- |
-| SC-1 | A new account reaches a generated weekly plan in under three minutes | end-to-end test walks the flow |
-| SC-2 | No day is ever scheduled beyond its declared availability | invariant, covered by unit tests |
-| SC-3 | Completing a session is reflected in topic progress and in the next generation | unit and end-to-end tests |
-| SC-4 | A topic with a nearer deadline is scheduled ahead of a higher-priority topic with a distant one | unit test on the ordering rule |
-| SC-5 | A learner can only ever read or write their own data | enforced by row level security |
+| #    | Criterion                                                                                       | How it is checked                |
+| ---- | ----------------------------------------------------------------------------------------------- | -------------------------------- |
+| SC-1 | A new account reaches a generated weekly plan in under three minutes                            | end-to-end test walks the flow   |
+| SC-2 | No day is ever scheduled beyond its declared availability                                       | invariant, covered by unit tests |
+| SC-3 | Completing a session is reflected in topic progress and in the next generation                  | unit and end-to-end tests        |
+| SC-4 | A topic with a nearer deadline is scheduled ahead of a higher-priority topic with a distant one | unit test on the ordering rule   |
+| SC-5 | A learner can only ever read or write their own data                                            | enforced by row level security   |
 
 ## 5. User stories
 
 ### Access
 
 **US-001 — Protected data**
+
 > **Given** I am not signed in
 > **When** I open the dashboard
 > **Then** I am redirected to the sign-in page
 
 **US-002 — Sign up and sign in**
+
 > **Given** I have no account
 > **When** I register with an email and a password and then sign in
 > **Then** I reach my own empty dashboard
@@ -70,16 +72,19 @@ managers planning on someone else's behalf.
 ### Topics
 
 **US-003 — Add a topic**
+
 > **Given** I am signed in
 > **When** I add a topic with a title, an estimate in minutes and a priority
 > **Then** the topic appears in my topic list and becomes available for planning
 
 **US-004 — Edit a topic**
+
 > **Given** I mis-estimated a topic
 > **When** I change its estimate or priority
 > **Then** the change is saved and affects the next generated plan
 
 **US-005 — Delete a topic**
+
 > **Given** I have a topic I no longer need
 > **When** I delete it
 > **Then** it disappears from my list and from future plans
@@ -87,11 +92,13 @@ managers planning on someone else's behalf.
 ### Availability
 
 **US-006 — Declare availability**
+
 > **Given** I study only on some evenings
 > **When** I set minutes for each weekday
 > **Then** those values are stored and used as the capacity for planning
 
 **US-007 — Protect a free day**
+
 > **Given** I never study on Fridays
 > **When** I set Friday to zero minutes and generate a plan
 > **Then** no session is scheduled on Friday
@@ -99,22 +106,26 @@ managers planning on someone else's behalf.
 ### Planning
 
 **US-008 — Generate a plan**
+
 > **Given** I have topics and declared availability
 > **When** I generate this week's plan
 > **Then** I see dated sessions, grouped by day, whose minutes never exceed that
 > day's declared availability
 
 **US-009 — Deadline pressure wins**
+
 > **Given** one topic is due this week and another in a month
 > **When** I generate a plan
 > **Then** the topic due this week receives time first
 
 **US-010 — Large topics are split**
+
 > **Given** a topic estimated at more minutes than any single day allows
 > **When** I generate a plan
 > **Then** the topic is split across several days rather than dropped or truncated
 
 **US-011 — Regenerate**
+
 > **Given** my week went differently than planned
 > **When** I regenerate the plan
 > **Then** the remaining days are re-planned from actual remaining work, and
@@ -123,22 +134,26 @@ managers planning on someone else's behalf.
 ### Progress
 
 **US-012 — Complete a session**
+
 > **Given** a planned session of 45 minutes
 > **When** I mark it done
 > **Then** the topic's remaining minutes drop by 45 and my weekly progress rises
 
 **US-013 — Skip a session**
+
 > **Given** a planned session I did not do
 > **When** I mark it skipped
 > **Then** the topic's remaining minutes are unchanged and the work returns to
 > the pool for the next generation
 
 **US-014 — Finished topics stop appearing**
+
 > **Given** a topic whose completed minutes reached its estimate
 > **When** I regenerate the plan
 > **Then** that topic receives no further sessions
 
 **US-015 — See progress**
+
 > **Given** I have completed some sessions this week
 > **When** I open the dashboard
 > **Then** I see per-topic completed versus estimated minutes and what remains
@@ -146,15 +161,15 @@ managers planning on someone else's behalf.
 
 ## 6. Functional requirements
 
-| ID | Requirement |
-| --- | --- |
+| ID     | Requirement                                                                                        |
+| ------ | -------------------------------------------------------------------------------------------------- |
 | FR-001 | Email and password authentication; unauthenticated access to learner data is redirected to sign-in |
-| FR-002 | Full create, read, update and delete for topics, each owned by exactly one user |
-| FR-003 | Per-weekday availability in minutes, where zero is valid and means "do not schedule" |
-| FR-004 | Generation of a dated weekly plan from active topics and declared availability |
-| FR-005 | Marking a session done or skipped, with the corresponding effect on topic progress |
-| FR-006 | A dashboard showing this week's sessions by day and per-topic progress |
-| FR-007 | Database-level isolation of every learner-owned row |
+| FR-002 | Full create, read, update and delete for topics, each owned by exactly one user                    |
+| FR-003 | Per-weekday availability in minutes, where zero is valid and means "do not schedule"               |
+| FR-004 | Generation of a dated weekly plan from active topics and declared availability                     |
+| FR-005 | Marking a session done or skipped, with the corresponding effect on topic progress                 |
+| FR-006 | A dashboard showing this week's sessions by day and per-topic progress                             |
+| FR-007 | Database-level isolation of every learner-owned row                                                |
 
 ## 7. Non-functional requirements
 
@@ -238,7 +253,7 @@ direct comparison with the authenticated user.
 - Storage of learning content: notes, flashcards, files, links.
 - AI generation of topics or material.
 - Sharing, teams, tutors, or more than one user per account.
-- Calendar, email or push integrations; reminders of any kind.
+- Live calendar synchronization, email or push integrations; reminders of any kind.
 - Payments, subscription tiers, quotas.
 - Import from external tools.
 
@@ -263,3 +278,23 @@ direct comparison with the authenticated user.
    address nobody owns. Acceptable while the only data an account holds is its
    own study list; it would not be acceptable if the product ever sent mail or
    held anything of value.
+
+## 13. Submission polish, 2026-09-13
+
+User-authorized extension for the final course submission:
+
+- Name search and active/completed filters for topics; ordinary GET forms.
+- Next planned session in the selected week, with a local focus timer capped at
+  25 minutes. Timer completion does not change persisted progress; the learner
+  explicitly marks the entire session done. Timer resets on navigation.
+- Authenticated `.ics` export of the selected week's planned sessions only,
+  represented as transparent all-day entries because start hours are not stored.
+  This is a file snapshot, not a calendar integration or synchronization service.
+- Completed sessions must be undone via `set_session_status` before deletion.
+  The delete query itself rejects completed rows to avoid phantom progress.
+- Manual planned sessions reserve topic minutes as well as daily capacity during
+  regeneration. These reservations never become persisted completed minutes.
+
+NFR-002 applies to persistent data actions. The optional local timer requires
+JavaScript; all forms, filtering, planning, status updates and export remain
+available without it.

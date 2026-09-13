@@ -30,6 +30,16 @@ if (db) {
 }
 
 const priorities = [1, 2, 3, 4, 5];
+const search = (Astro.url.searchParams.get("q") ?? "").trim();
+const filter = Astro.url.searchParams.get("filter") ?? "all";
+const visibleTopics = topics.filter((topic) => {
+  const matchesText = topic.title.toLocaleLowerCase("pl").includes(search.toLocaleLowerCase("pl"));
+  const completed = remainingMinutes(topic) === 0 || topic.status === "done";
+  return (
+    matchesText &&
+    (filter === "active" ? !completed && topic.status === "active" : filter === "done" ? completed : true)
+  );
+});
 
 const topicStatusLabel: Record<string, string> = {
   active: "aktywny",
@@ -70,8 +80,7 @@ const primaryButton =
   <section class="border-line mb-12 border-b pb-10">
     <h2 class="text-lg font-semibold tracking-tight">Dodaj temat</h2>
     <p class="text-ink-muted mt-1 mb-5 text-sm">
-      Szacowany czas, w który wierzysz, priorytet, który naprawdę masz na myśli, i termin tylko wtedy, gdy faktycznie
-      istnieje.
+      Podaj czas potrzebny na cały temat. Priorytet 5 jest najwyższy, a termin możesz zostawić pusty.
     </p>
 
     <form method="POST" action="/api/topics" class="grid gap-4 sm:grid-cols-6">
@@ -122,6 +131,35 @@ const primaryButton =
   <section>
     <h2 class="mb-5 text-lg font-semibold tracking-tight">Twoje tematy</h2>
 
+    <form
+      method="GET"
+      action="/topics"
+      class="mb-6 flex flex-wrap items-end gap-3"
+      role="search"
+      aria-label="Wyszukaj tematy"
+    >
+      <label class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span class:list={label}>Szukaj tematu</span>
+        <input type="search" name="q" value={search} placeholder="Nazwa tematu…" class:list={field} />
+      </label>
+      <label class="flex flex-col gap-1.5">
+        <span class:list={label}>Pokaż</span>
+        <select name="filter" class:list={field}>
+          <option value="all" selected={filter === "all"}>Wszystkie</option>
+          <option value="active" selected={filter === "active"}>Do nauki</option>
+          <option value="done" selected={filter === "done"}>Ukończone</option>
+        </select>
+      </label>
+      <button type="submit" class:list={primaryButton}>Filtruj</button>
+      {
+        (search || filter !== "all") && (
+          <a href="/topics" class="text-ink-muted px-2 py-2 text-sm underline underline-offset-4">
+            Wyczyść
+          </a>
+        )
+      }
+    </form>
+
     {
       topics.length === 0 ? (
         <p
@@ -132,7 +170,7 @@ const primaryButton =
         </p>
       ) : (
         <ul data-testid="topic-list" class="flex flex-col gap-4">
-          {topics.map((topic) => {
+          {visibleTopics.map((topic) => {
             const left = remainingMinutes(topic);
             const percent =
               topic.estimatedMinutes === 0
@@ -145,7 +183,7 @@ const primaryButton =
                 data-topic-title={topic.title}
                 class="border-line bg-raised rounded-[10px] border p-4"
               >
-                <form method="POST" action={`/api/topics/${topic.id}`} class="grid gap-3 sm:grid-cols-6 sm:items-end">
+                <form method="POST" action={`/api/topics/${topic.id}`} class="grid gap-3 sm:grid-cols-7 sm:items-end">
                   <label class="flex flex-col gap-1.5 sm:col-span-2">
                     <span class:list={label}>Tytuł</span>
                     <input type="text" name="title" value={topic.title} maxlength="200" class:list={field} />
@@ -180,7 +218,7 @@ const primaryButton =
                     <input type="date" name="deadline" value={topic.deadline ?? ""} class:list={field} />
                   </label>
 
-                  <div class="flex gap-2 sm:col-span-1">
+                  <div class="flex flex-wrap gap-2 sm:col-span-2">
                     <button
                       type="submit"
                       name="_action"
@@ -201,7 +239,7 @@ const primaryButton =
                   </div>
                 </form>
 
-                <div class="mt-4 flex items-center gap-3">
+                <div class="mt-4 flex flex-wrap items-center gap-3">
                   <div class="bg-sunken h-1 flex-1 overflow-hidden rounded-full">
                     <div class="bg-brand h-full rounded-full" style={`width: ${percent}%`} />
                   </div>
@@ -219,6 +257,13 @@ const primaryButton =
             );
           })}
         </ul>
+      )
+    }
+    {
+      topics.length > 0 && visibleTopics.length === 0 && (
+        <p class="text-ink-muted py-8 text-sm" role="status">
+          Brak pasujących tematów. Zmień wyszukiwanie lub wyczyść filtry.
+        </p>
       )
     }
   </section>

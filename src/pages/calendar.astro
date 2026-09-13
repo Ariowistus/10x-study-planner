@@ -2,7 +2,7 @@
 import AppLayout from "@/layouts/AppLayout.astro";
 import { createClient } from "@/lib/supabase";
 import { loadMonthView, todayIso, type MonthView } from "@/lib/planning";
-import { addMonths, startOfMonth, startOfWeek } from "@/domain/date";
+import { addMonths, isIsoDate, startOfMonth, startOfWeek } from "@/domain/date";
 
 export const prerender = false;
 
@@ -11,7 +11,7 @@ export const prerender = false;
 
 const today = todayIso();
 const requested = Astro.url.searchParams.get("month");
-const monthStart = startOfMonth(requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today);
+const monthStart = startOfMonth(isIsoDate(requested) ? requested : today);
 const openDay = Astro.url.searchParams.get("day");
 
 const db = createClient(Astro.request.headers, Astro.cookies);
@@ -125,6 +125,9 @@ const panelField =
           ))}
         </datalist>
 
+        <p class="text-ink-muted mb-3 text-xs md:hidden">
+          Przesuń kalendarz w bok, aby zobaczyć wszystkie dni tygodnia.
+        </p>
         <div class="overflow-x-auto">
           <div class="min-w-[720px]">
             <div class="text-ink-faint mb-2 grid grid-cols-7 gap-2 text-[11px] font-medium tracking-wide uppercase">
@@ -214,6 +217,15 @@ const panelField =
                                   </p>
 
                                   <div class="mt-1.5 flex flex-wrap gap-1">
+                                    {session.status === "done" && (
+                                      <form method="POST" action={`/api/sessions/${session.id}`}>
+                                        <input type="hidden" name="status" value="planned" />
+                                        <input type="hidden" name="month" value={month.monthStart} />
+                                        <button type="submit" class:list={[tinyButton, "border-line text-ink-muted"]}>
+                                          Cofnij ukończenie
+                                        </button>
+                                      </form>
+                                    )}
                                     {session.status !== "done" && (
                                       <form method="POST" action={`/api/sessions/${session.id}`}>
                                         <input type="hidden" name="status" value="done" />
@@ -233,6 +245,10 @@ const panelField =
                                       <button
                                         type="submit"
                                         data-testid="panel-delete-session"
+                                        disabled={session.status === "done"}
+                                        title={
+                                          session.status === "done" ? "Najpierw cofnij ukończenie sesji" : "Usuń sesję"
+                                        }
                                         class:list={[tinyButton, "border-danger-line text-danger hover:bg-danger-soft"]}
                                       >
                                         Usuń

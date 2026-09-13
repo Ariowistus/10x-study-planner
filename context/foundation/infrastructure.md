@@ -1,5 +1,10 @@
 # Infrastructure — 10x Study Planner
 
+**Verification update, 2026-09-13:** `npm run build:cf` succeeded locally on
+Windows with Node 24.19.0 during the submission audit. The runtime failure
+described below records the bootstrap environment, not a current universal
+blocker. The dual-adapter decision and Node 22 CI target remain in effect.
+
 - **Inputs**: `context/foundation/tech-stack.md`, `context/foundation/prd.md`
 - **Date**: 2026-09-10
 
@@ -26,13 +31,13 @@ maintained MCP server if terminal access is ever unavailable.
 
 ## Stack fit
 
-| Concern | Fit |
-| --- | --- |
-| Rendering | server-side rendering on request, which the adapter supports natively |
-| Runtime | `workerd`; the application uses only web-standard APIs plus the Supabase SDK |
-| Database | Supabase over HTTPS, no direct TCP connection needed, so no connection pooling problem at the edge |
-| Static assets | served by the Workers assets binding configured in `wrangler.jsonc` |
-| Build | produced on Linux in CI, never on the developer machine |
+| Concern       | Fit                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| Rendering     | server-side rendering on request, which the adapter supports natively                              |
+| Runtime       | `workerd`; the application uses only web-standard APIs plus the Supabase SDK                       |
+| Database      | Supabase over HTTPS, no direct TCP connection needed, so no connection pooling problem at the edge |
+| Static assets | served by the Workers assets binding configured in `wrangler.jsonc`                                |
+| Build         | produced on Linux in CI, never on the developer machine                                            |
 
 ## Known constraint: the local runtime does not start
 
@@ -94,12 +99,12 @@ publishing stays a deliberate act rather than a side effect of merging.
 
 ## Secrets
 
-| Secret | Where it lives | Used by |
-| --- | --- | --- |
-| `SUPABASE_URL` | GitHub Actions secret; Workers secret in production | build and runtime |
-| `SUPABASE_KEY` | GitHub Actions secret; Workers secret in production | build and runtime |
-| `CLOUDFLARE_API_TOKEN` | GitHub Actions secret | deployment job only |
-| `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secret | deployment job only |
+| Secret                  | Where it lives                                      | Used by             |
+| ----------------------- | --------------------------------------------------- | ------------------- |
+| `SUPABASE_URL`          | GitHub Actions secret; Workers secret in production | build and runtime   |
+| `SUPABASE_KEY`          | GitHub Actions secret; Workers secret in production | build and runtime   |
+| `CLOUDFLARE_API_TOKEN`  | GitHub Actions secret                               | deployment job only |
+| `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secret                               | deployment job only |
 
 Local values live in `.env`, which is not tracked. `.env.example` documents the
 names without values. The Cloudflare API token is scoped to Workers for this one
@@ -127,13 +132,13 @@ migration would need its own considered reversal.
 
 ## Permissions
 
-| Action | Who |
-| --- | --- |
-| run tests, lint, build | agent, freely |
-| write and apply migrations locally | agent, with review |
-| publish to production | human, deliberately |
-| rotate a secret | human only |
-| delete a project, drop a database | human only |
+| Action                             | Who                 |
+| ---------------------------------- | ------------------- |
+| run tests, lint, build             | agent, freely       |
+| write and apply migrations locally | agent, with review  |
+| publish to production              | human, deliberately |
+| rotate a secret                    | human only          |
+| delete a project, drop a database  | human only          |
 
 ## Risks
 

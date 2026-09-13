@@ -45,6 +45,19 @@ export function remainingMinutes(topic: Topic): number {
   return Math.max(0, topic.estimatedMinutes - topic.completedMinutes);
 }
 
+/** Reserve manual planned work for allocation only; never persist it as done. */
+export function reserveTopicMinutes(
+  topics: readonly Topic[],
+  reserved: readonly { topicId: string; minutes: number }[],
+): Topic[] {
+  return topics.map((topic) => ({
+    ...topic,
+    completedMinutes:
+      topic.completedMinutes +
+      reserved.filter((session) => session.topicId === topic.id).reduce((sum, session) => sum + session.minutes, 0),
+  }));
+}
+
 /** A topic is schedulable while it is active and still has work left. */
 export function isSchedulable(topic: Topic): boolean {
   return topic.status === "active" && remainingMinutes(topic) > 0;

@@ -22,11 +22,11 @@ Everything else is covered by one walk through the main flow.
 
 ## Layers
 
-| Layer | Tool | Scope | Where |
-| --- | --- | --- | --- |
-| Unit | Vitest | the scheduling rule and its date arithmetic | `src/domain/*.test.ts` |
-| End-to-end | Playwright | the user-visible flow against a production build | `e2e/*.spec.ts` |
-| Static | ESLint, `astro check` | types and lint across the repository | CI |
+| Layer      | Tool                  | Scope                                            | Where                  |
+| ---------- | --------------------- | ------------------------------------------------ | ---------------------- |
+| Unit       | Vitest                | the scheduling rule and its date arithmetic      | `src/domain/*.test.ts` |
+| End-to-end | Playwright            | the user-visible flow against a production build | `e2e/*.spec.ts`        |
+| Static     | ESLint, `astro check` | types and lint across the repository             | CI                     |
 
 There is no integration layer between the two. The repository functions are thin
 wrappers over Supabase queries; testing them against mocks would assert that the
@@ -38,23 +38,23 @@ database instead.
 The rule is a pure function, so it can be tested exhaustively at no cost. What
 is covered, and why each case earns its place:
 
-| Behaviour | Why it matters |
-| --- | --- |
-| A day is never scheduled beyond its declared availability | SC-2, the one hard invariant; violating it makes every plan a lie |
-| A topic never receives more than its remaining minutes | prevents scheduling work that does not exist |
-| A topic larger than one day is split across days | US-010; the alternative failure is silent truncation |
-| A zero-availability day stays empty | US-007; a protected evening is a promise |
-| A nearer deadline outranks a distant one | US-009, the core of the rule |
-| A deadline topic outranks an important topic with no deadline | the ordering that a purely priority-based score would get wrong |
-| An overdue deadline is maximally urgent | recorded as an open question; the test pins current behaviour |
-| Finished and archived topics are not scheduled | US-014 |
-| No session below the minimum block, unless it finishes a topic | keeps plans free of unusable fragments |
-| Capacity below the minimum block is left unused | the deliberate consequence of the rule above |
-| One merged session per topic per day | the allocation loop works in small units; the learner should not see them |
-| Identical input produces an identical plan | without determinism, nothing above is a stable test |
-| Ties break on topic id, not input order | otherwise plans would shuffle between runs |
-| Completed work reduces the next plan | SC-3, the recomputation half of the business rule |
-| A week that does not start on Monday is rejected | fails loudly rather than producing a shifted plan |
+| Behaviour                                                      | Why it matters                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| A day is never scheduled beyond its declared availability      | SC-2, the one hard invariant; violating it makes every plan a lie         |
+| A topic never receives more than its remaining minutes         | prevents scheduling work that does not exist                              |
+| A topic larger than one day is split across days               | US-010; the alternative failure is silent truncation                      |
+| A zero-availability day stays empty                            | US-007; a protected evening is a promise                                  |
+| A nearer deadline outranks a distant one                       | US-009, the core of the rule                                              |
+| A deadline topic outranks an important topic with no deadline  | the ordering that a purely priority-based score would get wrong           |
+| An overdue deadline is maximally urgent                        | recorded as an open question; the test pins current behaviour             |
+| Finished and archived topics are not scheduled                 | US-014                                                                    |
+| No session below the minimum block, unless it finishes a topic | keeps plans free of unusable fragments                                    |
+| Capacity below the minimum block is left unused                | the deliberate consequence of the rule above                              |
+| One merged session per topic per day                           | the allocation loop works in small units; the learner should not see them |
+| Identical input produces an identical plan                     | without determinism, nothing above is a stable test                       |
+| Ties break on topic id, not input order                        | otherwise plans would shuffle between runs                                |
+| Completed work reduces the next plan                           | SC-3, the recomputation half of the business rule                         |
+| A week that does not start on Monday is rejected               | fails loudly rather than producing a shifted plan                         |
 
 Date arithmetic is tested separately: parsing, rejecting malformed input, month
 and year boundaries, day counts across a daylight-saving transition, and the
@@ -70,23 +70,43 @@ reward tests of markup.
 One browser, one worker, run against `npm run build && npm run start`, so the
 tested artefact is the one that ships.
 
-| Scenario | Requirement |
-| --- | --- |
-| An unauthenticated visitor is redirected from the dashboard and from topics | US-001 |
+| Scenario                                                                                                                 | Requirement                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| An unauthenticated visitor is redirected from the dashboard and from topics                                              | US-001                                       |
 | A learner registers, declares availability, adds a topic, generates a plan, marks a session done, and sees progress move | SC-1, US-003, US-006, US-008, US-012, US-015 |
-| A day left at zero minutes receives nothing | US-007 |
-| The topic due soonest is scheduled ahead of one due in two months | US-009 |
-| Regenerating a week leaves a completed session untouched and does not replan its evening | SC-3, the S-02 manual gate |
-| Evenings that have already passed receive no work | FR-004 |
-| A deleted topic disappears | US-005 |
-| A topic with a zero estimate is rejected, both in the browser and when the browser is bypassed | FR-002 validation |
-| A second learner sees an empty account | SC-5 |
+| A day left at zero minutes receives nothing                                                                              | US-007                                       |
+| The topic due soonest is scheduled ahead of one due in two months                                                        | US-009                                       |
+| Regenerating a week leaves a completed session untouched and does not replan its evening                                 | SC-3, the S-02 manual gate                   |
+| Evenings that have already passed receive no work                                                                        | FR-004                                       |
+| A deleted topic disappears                                                                                               | US-005                                       |
+| A topic with a zero estimate is rejected, both in the browser and when the browser is bypassed                           | FR-002 validation                            |
+| A second learner sees an empty account                                                                                   | SC-5                                         |
 
 The isolation test is deliberately end-to-end rather than a unit test of a
 policy string. It asserts the property that matters — a second learner sees
 nothing of the first — through the same path a real user takes.
 
 ## Quality gates
+
+Submission extensions (2026-09-13) protect these additional risks:
+
+- `e2e/seed.spec.ts`: editing a topic persists across reload; filtering never
+  deletes data. Also provides the exemplar for new E2E scenarios.
+- `e2e/focus-session.spec.ts`: timer start, pause and reset do not write progress;
+  export agrees with the saved week; explicit completion survives reload.
+- `e2e/completed-session.spec.ts`: direct deletion of a completed session is
+  refused; undo and subsequent deletion leave zero progress.
+- `src/domain/reservations.test.ts`: manual work is not allocated twice.
+- `src/domain/calendar-export.test.ts`: date boundaries, status selection,
+  calendar-property injection and UTF-8 folding in exported files.
+- Date tests reject impossible dates instead of silently moving them into the
+  following month. Routes use the same validation before selecting a period.
+
+New E2E tests use independent HTTP-authenticated accounts and storageState, with
+topic cleanup after each test. The historical suite uses UI registration and
+leaves test accounts and records behind in hosted Supabase. CI runs against a
+disposable local Supabase instance. Never use an actual learner account as a
+test fixture.
 
 Nothing merges to `main` unless all of it passes:
 

@@ -1,5 +1,5 @@
 import { addDays, endOfMonth, startOfMonth, startOfWeek, weekdayIndex } from "@/domain/date";
-import { generatePlan, remainingCapacity, remainingMinutes } from "@/domain/scheduler";
+import { generatePlan, remainingCapacity, remainingMinutes, reserveTopicMinutes } from "@/domain/scheduler";
 import type { Availability, IsoDate, SessionStatus, Topic } from "@/domain/types";
 import {
   deletePlannedSessionsInRange,
@@ -94,7 +94,12 @@ export async function regenerateWeek(db: Db, userId: string, weekStart: IsoDate)
 
   const plan = generatePlan({
     weekStart,
-    topics: topicRows.map(toTopic),
+    topics: reserveTopicMinutes(
+      topicRows.map(toTopic),
+      existing
+        .filter((session) => session.manual && session.status === "planned")
+        .map((session) => ({ topicId: session.topic_id, minutes: session.minutes })),
+    ),
     availability: adjusted as unknown as Availability,
   });
 
