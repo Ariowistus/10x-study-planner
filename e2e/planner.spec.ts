@@ -478,3 +478,34 @@ test.describe("typing a topic name", () => {
     await expect(page.getByTestId("topic-item")).toHaveCount(1);
   });
 });
+
+test.describe("adding to a day that already has work", () => {
+  // The affordance used to show only on empty days, so a day with a block on it
+  // looked closed for business.
+  test("still invites another block, and takes one", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const target = nextWeekMonday();
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+
+    const cell = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await cell.getByTestId("panel-new-topic").fill("Angielski");
+    await cell.getByTestId("panel-minutes").fill("60");
+    await cell.getByTestId("panel-add-session").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    // Closed, with work on it, the cell still says it can take more.
+    const filled = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await expect(filled.getByTestId("day-add-hint")).toBeVisible();
+
+    // And opening it from that state reaches the form.
+    await filled.locator("summary").click();
+    await filled.getByTestId("panel-new-topic").fill("Matematyka");
+    await filled.getByTestId("panel-minutes").fill("30");
+    await filled.getByTestId("panel-add-session").click();
+
+    const both = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await expect(both.getByTestId("calendar-session")).toHaveCount(2);
+    await expect(both).toContainText("90 min");
+  });
+});

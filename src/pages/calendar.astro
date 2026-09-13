@@ -167,11 +167,7 @@ const panelField =
                             <span class="tnum text-ink-faint text-[10px]">{busy > 0 ? `${busy} min` : "—"}</span>
                           </div>
 
-                          {day.sessions.length === 0 ? (
-                            <span class="text-ink-faint text-[10px] underline underline-offset-2 group-open/day:hidden">
-                              dodaj
-                            </span>
-                          ) : (
+                          {day.sessions.length > 0 && (
                             <ul class="flex flex-col gap-1">
                               {day.sessions.slice(0, 3).map((session) => (
                                 <li
@@ -195,6 +191,16 @@ const panelField =
                               )}
                             </ul>
                           )}
+
+                          <span
+                            data-testid="day-add-hint"
+                            class:list={[
+                              "text-ink-faint inline-block text-[10px] underline underline-offset-2 group-open/day:hidden",
+                              day.sessions.length > 0 ? "mt-1.5" : "",
+                            ]}
+                          >
+                            + dodaj
+                          </span>
                         </summary>
 
                         <div class="border-line mt-2 border-t pt-2">
