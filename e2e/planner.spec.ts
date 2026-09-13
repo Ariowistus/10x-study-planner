@@ -444,3 +444,37 @@ test.describe("planning a day from the calendar", () => {
     ).toHaveCount(0);
   });
 });
+
+test.describe("typing a topic name", () => {
+  // Typing the same name on two days must mean one topic, not two: otherwise
+  // the progress for "Angielski" would be split across unrelated rows.
+  test("reuses a topic that already exists instead of duplicating it", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const monday = nextWeekMonday();
+    const tuesday = plusDays(monday, 1);
+
+    await page.goto(`/calendar?month=${monday}&day=${monday}`);
+    const first = page.locator(`[data-testid="calendar-day"][data-date="${monday}"]`);
+    await first.getByTestId("panel-new-topic").fill("Angielski");
+    await first.getByTestId("panel-minutes").fill("60");
+    await first.getByTestId("panel-add-session").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    // Same name, different day, and deliberately in different case.
+    await page.goto(`/calendar?month=${monday}&day=${tuesday}`);
+    const second = page.locator(`[data-testid="calendar-day"][data-date="${tuesday}"]`);
+    await second.getByTestId("panel-new-topic").fill("angielski");
+    await second.getByTestId("panel-minutes").fill("30");
+    await second.getByTestId("panel-add-session").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    // Both days carry a block…
+    await expect(page.locator(`[data-testid="calendar-day"][data-date="${monday}"]`)).toContainText("60 min");
+    await expect(page.locator(`[data-testid="calendar-day"][data-date="${tuesday}"]`)).toContainText("30 min");
+
+    // …but there is still exactly one topic behind them.
+    await page.goto("/topics");
+    await expect(page.getByTestId("topic-item")).toHaveCount(1);
+  });
+});

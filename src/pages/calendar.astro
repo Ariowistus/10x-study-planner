@@ -119,6 +119,12 @@ const panelField =
           </div>
         </section>
 
+        <datalist id="topic-names">
+          {month.topics.map((topic) => (
+            <option value={topic.title} />
+          ))}
+        </datalist>
+
         <div class="overflow-x-auto">
           <div class="min-w-[720px]">
             <div class="text-ink-faint mb-2 grid grid-cols-7 gap-2 text-[11px] font-medium tracking-wide uppercase">
@@ -236,26 +242,14 @@ const panelField =
                             <input type="hidden" name="date" value={day.date} />
                             <input type="hidden" name="month" value={month.monthStart} />
 
-                            {month.topics.length > 0 && (
-                              <select
-                                name="topicId"
-                                data-testid="panel-topic-select"
-                                aria-label="Istniejący temat"
-                                class:list={panelField}
-                              >
-                                <option value="">— nowy temat —</option>
-                                {month.topics.map((topic) => (
-                                  <option value={topic.id}>{topic.title}</option>
-                                ))}
-                              </select>
-                            )}
-
                             <input
                               type="text"
                               name="newTopicTitle"
                               maxlength="200"
-                              placeholder="Nazwa nowego tematu"
-                              aria-label="Nazwa nowego tematu"
+                              required
+                              list="topic-names"
+                              placeholder="Temat"
+                              aria-label="Temat"
                               data-testid="panel-new-topic"
                               class:list={panelField}
                             />
