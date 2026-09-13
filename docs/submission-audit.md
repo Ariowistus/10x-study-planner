@@ -76,12 +76,12 @@ Końcowy lint zakończył się pozytywnie. Komunikaty parsera Astro są informac
 Przejrzano zrzuty ekranu przy szerokości 1280 i 390 pikseli, w jasnym i ciemnym
 motywie. Kalendarz miesięczny na telefonie przewija się wewnątrz swojego panelu.
 
-Zielone wyniki potwierdzone dla wcześniejszego opublikowanego commitu
-`509a44a7b4142c2e3ba514f518631d834fc5a5ac`:
-[CI](https://github.com/Ariowistus/10x-study-planner/actions/runs/34758507383),
-[deploy](https://github.com/Ariowistus/10x-study-planner/actions/runs/34758507546).
-Te linki dokumentują wersję sprzed dzisiejszych poprawek. Nowe poprawki mają
-lokalne wyniki powyżej; po ich publikacji należy wskazać CI nowego commitu.
+Wydanie kodu aplikacji: `71997128775f43ecb7af1c45774b4c5d3033e5e5`.
+[CI tego wydania](https://github.com/Ariowistus/10x-study-planner/actions/runs/34760786381)
+zakończyło się pozytywnie na Linux i Node 22: lint, typy, 58 testów jednostkowych,
+27 testów E2E oraz oba buildy. Testy E2E korzystały z osobnej bazy uruchomionej
+w GitHub Actions ze wszystkimi migracjami repozytorium.
+[Przebieg wdrożenia tego samego commitu](https://github.com/Ariowistus/10x-study-planner/actions/runs/34761001144).
 
 ## Ulepszenia przygotowane do oddania
 
