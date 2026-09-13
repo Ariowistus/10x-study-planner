@@ -203,6 +203,10 @@
 .topic-summary li:last-child {
   margin-bottom: 0;
 }
+.topic-summary li > div > .tnum {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .focus-disclosure {
   margin-top: 2rem;
   border-top: 1px solid var(--line);

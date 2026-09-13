@@ -25,3 +25,31 @@ CRUD, persistence, two-view navigation, completion/undo, overlap rejection,
 cross-account isolation and focus timer. Update obsolete UI tests to the new
 user journey, retain generator coverage through its API. Both adapter builds,
 lint/types and CI remain required. Apply additive migration before production.
+
+## Verification results, 2026-09-13
+
+- 63 domain unit tests passed; coverage 99.24% statements, 92.95% branches,
+  100% functions, 99.18% lines. Lint passed; Astro check: zero errors/warnings.
+- Node and Cloudflare builds passed locally and in CI on Node 22.
+- [CI for 9508505](https://github.com/Ariowistus/10x-study-planner/actions/runs/34762746619)
+  passed all 25 functional browser scenarios and two screenshot-generation runs.
+- CI applied all three migrations to a fresh Supabase database. Tests confirmed
+  hour persistence, atomic overlap rejection, simultaneous reservation rejection,
+  CRUD, completion/undo and cross-account access protection.
+- Desktop 1280px and mobile 390px screenshots inspected in light/dark themes.
+  Final CSS prevents a long topic name from splitting its adjacent percentage.
+- Backward compatibility also tested locally against the existing hosted schema:
+  old generated sessions appear without hours and completing/regenerating keeps
+  their history. This test caught and verified the fix for the select rendering
+  defect, documented in lessons.md.
+
+## Production handoff
+
+Code is pushed to main. **Calendar-first is not yet deployed.** Production still
+runs application release 7199712. The new app requires migration
+`supabase/migrations/20260913150000_calendar_times.sql` before deployment.
+Supabase CLI has no administrative login and the browser shows its sign-in page.
+The owner needs to log in; no passwords or tokens should be placed in chat.
+After access is available, apply the reviewed additive migration to the existing
+project, trigger Deploy after green CI, and run the calendar CRUD/completion/focus
+tests against the public URL. No existing study records need to be deleted.

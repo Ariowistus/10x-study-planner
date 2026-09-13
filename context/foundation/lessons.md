@@ -196,3 +196,16 @@ found. This file grows by addition; earlier entries are not rewritten.
   builds in the same checkout. Run visual checks against a fresh production
   server, then restart development if needed. Do not fix this with longer waits.
 - **Applies to**: implement, e2e, impl-review
+
+## Keep native select options out of Astro fragments
+
+- **Context**: Calendar-first dashboard, 2026-09-13.
+- **Problem**: Formatting a native select inside a conditional template introduced
+  a fragment around its options. Astro emitted the following form and first
+  checklist entry inside the select; the browser repaired the HTML by moving
+  the first entry's contents. Lint, types and builds passed, but the real browser
+  test found an empty first list item and completion belonged to the wrong form.
+- **Rule**: Render options with a direct map expression instead of a fragment
+  inside a native select. Keep an end-to-end assertion on the first entry and
+  its completion behavior. Build success alone does not establish valid DOM.
+- **Applies to**: implement, e2e, impl-review
