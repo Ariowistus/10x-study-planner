@@ -339,5 +339,9 @@ test.describe("calendar", () => {
     await page.goto(`/calendar?month=${week}`);
     const monday = page.locator(`[data-testid="calendar-day"][data-date="${week}"]`);
     await expect(monday).toContainText("Protokoły trasowania");
+    // The cell carries how long the session is, not just which topic it is.
+    await expect(monday.getByTestId("calendar-session").first()).toContainText("60 min");
+    // And the day header reads used against declared.
+    await expect(monday).toContainText("60 / 60 min");
   });
 });

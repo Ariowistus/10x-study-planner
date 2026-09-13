@@ -166,7 +166,11 @@ const ghostButton =
                             {day.date.slice(8)}
                           </span>
                           {day.availableMinutes > 0 && (
-                            <span class="tnum text-ink-faint text-[10px]">{day.availableMinutes} min</span>
+                            <span class="tnum text-ink-faint text-[10px]">
+                              {day.sessions.length > 0
+                                ? `${day.plannedMinutes + day.completedMinutes} / ${day.availableMinutes} min`
+                                : `${day.availableMinutes} min`}
+                            </span>
                           )}
                         </div>
 
@@ -184,8 +188,9 @@ const ghostButton =
                           <ul class="flex flex-col gap-1">
                             {day.sessions.slice(0, 3).map((session) => (
                               <li
+                                data-testid="calendar-session"
                                 class:list={[
-                                  "truncate rounded px-1 py-0.5 text-[10px] leading-tight",
+                                  "flex items-baseline justify-between gap-1 rounded px-1 py-0.5 text-[10px] leading-tight",
                                   session.status === "done"
                                     ? "bg-brand-soft text-brand"
                                     : session.status === "skipped"
@@ -194,7 +199,8 @@ const ghostButton =
                                 ]}
                                 title={`${session.topicTitle} — ${session.minutes} min`}
                               >
-                                {session.topicTitle}
+                                <span class="truncate">{session.topicTitle}</span>
+                                <span class="tnum shrink-0 opacity-75">{session.minutes} min</span>
                               </li>
                             ))}
                             {day.sessions.length > 3 && (
