@@ -322,7 +322,8 @@ test.describe("calendar", () => {
     await expect(name).toHaveText(shown ?? "");
 
     const day = page.locator('[data-testid="calendar-day"][data-in-month="true"]').first();
-    await day.click();
+    await day.locator("summary").click();
+    await day.getByRole("link", { name: /otwórz tydzień/i }).click();
     await expect(page).toHaveURL(/\/dashboard\?week=\d{4}-\d{2}-\d{2}/);
   });
 
@@ -438,8 +439,8 @@ test.describe("planning a day from the calendar", () => {
       .click();
 
     await expect(page.getByTestId("flash-ok")).toContainText("Usunięto sesję");
-    await expect(page.locator(`[data-testid="calendar-day"][data-date="${target}"]`)).not.toContainText(
-      "Do skasowania",
-    );
+    await expect(
+      page.locator(`[data-testid="calendar-day"][data-date="${target}"]`).getByTestId("calendar-session"),
+    ).toHaveCount(0);
   });
 });
