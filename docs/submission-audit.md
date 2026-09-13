@@ -8,7 +8,7 @@ commitu są dostępne w [historii wdrożeń](https://github.com/Ariowistus/10x-s
 
 ## Aktualizacja produktu: dwa widoki
 
-Na życzenie użytkownika przygotowano zmianę na **Realizacja + Kalendarz**.
+Na życzenie użytkownika wdrożono zmianę na **Realizacja + Kalendarz**.
 Nowy scenariusz zaliczeniowy: dodaj Angielski o 09:00 i 14:00 w kalendarzu,
 edytuj godzinę/czas, odhacz jeden wpis w Realizacji (50%), cofnij ukończenie
 i usuń wpis. Pokaż odrzucenie kolizji godzin oraz brak danych innego konta.
@@ -18,8 +18,13 @@ postęp liczony z rzeczywistych wpisów i blokowanie nakładających się godzin
 także przy równoczesnym zapisie. Oryginalny algorytm pozostaje w kodzie i testach.
 Wymagania kontroli dostępu, artefaktów oraz CI nie zmieniają się.
 
-Zmiana wymaga migracji 20260913150000_calendar_times.sql przed publikacją.
-Stan weryfikacji i wdrożenia tej aktualizacji: [raport zmiany](../context/changes/calendar-first/change.md).
+Migrację 20260913150000_calendar_times.sql zastosowano na produkcji 13 września.
+Wdrożono commit `1502ecd88228777b0ca2d13f016c83e292ad96cf`:
+[CI](https://github.com/Ariowistus/10x-study-planner/actions/runs/34763062532)
+i [publikacja](https://github.com/Ariowistus/10x-study-planner/actions/runs/34763678972)
+zakończyły się pozytywnie. Weryfikacja: 63 testy jednostkowe, 25 funkcjonalnych
+E2E, dwa przebiegi zrzutów oraz 6 dodatkowych scenariuszy na publicznej aplikacji.
+Szczegóły: [raport zmiany](../context/changes/calendar-first/change.md).
 
 Dalsza część tego dokumentu to audyt poprzedniego wydania 7199712; jego liczby
 testów, opis ekranów i przykłady prezentacji są historyczne.

@@ -31,7 +31,7 @@ lint/types and CI remain required. Apply additive migration before production.
 - 63 domain unit tests passed; coverage 99.24% statements, 92.95% branches,
   100% functions, 99.18% lines. Lint passed; Astro check: zero errors/warnings.
 - Node and Cloudflare builds passed locally and in CI on Node 22.
-- [CI for 9508505](https://github.com/Ariowistus/10x-study-planner/actions/runs/34762746619)
+- [CI for release 1502ecd](https://github.com/Ariowistus/10x-study-planner/actions/runs/34763062532)
   passed all 25 functional browser scenarios and two screenshot-generation runs.
 - CI applied all three migrations to a fresh Supabase database. Tests confirmed
   hour persistence, atomic overlap rejection, simultaneous reservation rejection,
@@ -43,13 +43,23 @@ lint/types and CI remain required. Apply additive migration before production.
   their history. This test caught and verified the fix for the select rendering
   defect, documented in lessons.md.
 
-## Production handoff
+## Production deployment — 2026-09-13
 
-Code is pushed to main. **Calendar-first is not yet deployed.** Production still
-runs application release 7199712. The new app requires migration
-`supabase/migrations/20260913150000_calendar_times.sql` before deployment.
-Supabase CLI has no administrative login and the browser shows its sign-in page.
-The owner needs to log in; no passwords or tokens should be placed in chat.
-After access is available, apply the reviewed additive migration to the existing
-project, trigger Deploy after green CI, and run the calendar CRUD/completion/focus
-tests against the public URL. No existing study records need to be deleted.
+**Calendar-first is deployed** at
+[Study Planner](https://10x-study-planner.ariowistus.workers.dev/dashboard).
+Application release: `1502ecd88228777b0ca2d13f016c83e292ad96cf`.
+[Successful deployment](https://github.com/Ariowistus/10x-study-planner/actions/runs/34763678972).
+
+After the owner signed in to Supabase, migration
+`supabase/migrations/20260913150000_calendar_times.sql` was applied through the
+SQL Editor to the existing project, wrapped in a single transaction. Schema
+checks confirmed the new column and function before publishing the application.
+Existing study records were retained. This was a manual SQL migration, not a
+Supabase CLI migration-history update.
+
+Six browser scenarios passed against the public Cloudflare URL after deployment:
+calendar CRUD with hour edits and reload/search; completion protection and undo;
+focus timer and ICS export; two-view navigation and old bookmarks; overlap
+rejection with adjacent bookings allowed; and concurrent reservation rejection.
+Each scenario used its own account and cleaned up its own study topics/sessions.
+No application-code changes followed these production checks.
