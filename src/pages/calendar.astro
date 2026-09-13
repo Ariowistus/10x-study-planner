@@ -12,6 +12,7 @@ export const prerender = false;
 const today = todayIso();
 const requested = Astro.url.searchParams.get("month");
 const monthStart = startOfMonth(requested && /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : today);
+const openDay = Astro.url.searchParams.get("day");
 
 const db = createClient(Astro.request.headers, Astro.cookies);
 
@@ -44,6 +45,12 @@ const MONTHS = [
 ];
 const DAY_HEADERS = ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."];
 
+const statusLabel: Record<string, string> = {
+  planned: "zaplanowane",
+  done: "zrobione",
+  skipped: "pominięte",
+};
+
 function monthName(iso: string): string {
   return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 }
@@ -61,11 +68,14 @@ const nextMonth = addMonths(monthStart, 1);
 
 const ghostButton =
   "rounded-[10px] border border-line px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-line-strong hover:text-ink";
+const tinyButton = "rounded-[10px] border px-2 py-1 text-[11px] font-medium transition-colors active:translate-y-px";
+const panelField =
+  "w-full rounded-[10px] border border-line bg-raised px-2 py-1.5 text-[12px] text-ink transition-colors focus:border-brand focus:outline-none";
 ---
 
 <AppLayout
   title="Kalendarz"
-  subtitle="Cały miesiąc z lotu ptaka: gdzie jest praca, a gdzie puste wieczory."
+  subtitle="Kliknij dzień, żeby dopisać temat i czas. Cały miesiąc widać z lotu ptaka."
   active="calendar"
 >
   {
@@ -92,9 +102,7 @@ const ghostButton =
               <span data-testid="month-planned" class="text-ink font-medium">
                 {formatMinutes(month.plannedMinutes)}
               </span>
-              {" zaplanowane, "}
-              <span class="text-ink font-medium">{formatMinutes(month.availableMinutes)}</span>
-              {" zadeklarowane"}
+              {" zaplanowane"}
             </p>
           </div>
 
@@ -111,21 +119,8 @@ const ghostButton =
           </div>
         </section>
 
-        {month.sessionCount === 0 && (
-          <p
-            data-testid="month-empty"
-            class="border-line-strong bg-raised text-ink-muted mb-8 rounded-[10px] border border-dashed px-5 py-6 text-center text-[15px]"
-          >
-            W tym miesiącu nie ma jeszcze żadnej sesji. Wybierz tydzień i wygeneruj plan na stronie
-            <a href="/dashboard" class="text-brand mx-1 font-medium underline underline-offset-2">
-              Plan
-            </a>
-            .
-          </p>
-        )}
-
         <div class="overflow-x-auto">
-          <div class="min-w-[680px]">
+          <div class="min-w-[720px]">
             <div class="text-ink-faint mb-2 grid grid-cols-7 gap-2 text-[11px] font-medium tracking-wide uppercase">
               {DAY_HEADERS.map((name) => (
                 <span>{name}</span>
@@ -134,81 +129,167 @@ const ghostButton =
 
             <div class="flex flex-col gap-2">
               {month.weeks.map((week) => (
-                <div class="grid grid-cols-7 gap-2">
+                <div class="grid grid-cols-7 items-start gap-2">
                   {week.map((day) => {
-                    const used =
-                      day.availableMinutes === 0
-                        ? 0
-                        : Math.min(
-                            100,
-                            Math.round(((day.plannedMinutes + day.completedMinutes) / day.availableMinutes) * 100),
-                          );
+                    const busy = day.plannedMinutes + day.completedMinutes;
 
                     return (
-                      <a
-                        href={`/dashboard?week=${startOfWeek(day.date)}`}
+                      /* The cell is the control: opening it reveals the day's blocks and the
+                         form that adds another. A details element keeps that working with no
+                         client JavaScript, which is how the rest of this interface behaves. */
+                      <details
                         data-testid="calendar-day"
                         data-date={day.date}
                         data-in-month={String(day.inMonth)}
-                        title={`Otwórz tydzień z ${day.date}`}
+                        open={openDay === day.date}
                         class:list={[
-                          "flex min-h-[104px] flex-col rounded-[10px] border p-2 transition-colors",
-                          day.isToday
-                            ? "border-brand-line bg-brand-soft"
-                            : "border-line bg-raised hover:border-line-strong",
-                          !day.inMonth ? "opacity-45" : "",
+                          "group/day rounded-[10px] border p-2 transition-colors",
+                          day.isToday ? "border-brand-line bg-brand-soft" : "border-line bg-raised",
+                          !day.inMonth ? "opacity-60" : "",
                         ]}
                       >
-                        <div class="mb-1.5 flex items-baseline justify-between gap-1">
-                          <span
-                            class:list={["tnum text-[12px]", day.isToday ? "text-brand font-semibold" : "font-medium"]}
-                          >
-                            {day.date.slice(8)}
-                          </span>
-                          {day.availableMinutes > 0 && (
-                            <span class="tnum text-ink-faint text-[10px]">
-                              {day.sessions.length > 0
-                                ? `${day.plannedMinutes + day.completedMinutes} / ${day.availableMinutes} min`
-                                : `${day.availableMinutes} min`}
+                        <summary class="min-h-[92px] cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                          <div class="mb-1.5 flex items-baseline justify-between gap-1">
+                            <span
+                              class:list={[
+                                "tnum text-[12px]",
+                                day.isToday ? "text-brand font-semibold" : "font-medium",
+                              ]}
+                            >
+                              {day.date.slice(8)}
                             </span>
-                          )}
-                        </div>
-
-                        {day.availableMinutes > 0 && (
-                          <div class="bg-sunken mb-1.5 h-1 w-full overflow-hidden rounded-full">
-                            <div class="bg-brand h-full rounded-full" style={`width: ${used}%`} />
+                            <span class="tnum text-ink-faint text-[10px]">{busy > 0 ? `${busy} min` : "—"}</span>
                           </div>
-                        )}
 
-                        {day.sessions.length === 0 ? (
-                          <span class="text-ink-faint text-[10px]">
-                            {day.availableMinutes === 0 ? "wolne" : "brak sesji"}
-                          </span>
-                        ) : (
-                          <ul class="flex flex-col gap-1">
-                            {day.sessions.slice(0, 3).map((session) => (
-                              <li
-                                data-testid="calendar-session"
-                                class:list={[
-                                  "flex items-baseline justify-between gap-1 rounded px-1 py-0.5 text-[10px] leading-tight",
-                                  session.status === "done"
-                                    ? "bg-brand-soft text-brand"
-                                    : session.status === "skipped"
-                                      ? "text-ink-faint line-through"
-                                      : "bg-sunken text-ink-muted",
-                                ]}
-                                title={`${session.topicTitle} — ${session.minutes} min`}
+                          {day.sessions.length === 0 ? (
+                            <span class="text-ink-faint text-[10px] underline underline-offset-2 group-open/day:hidden">
+                              dodaj
+                            </span>
+                          ) : (
+                            <ul class="flex flex-col gap-1">
+                              {day.sessions.slice(0, 3).map((session) => (
+                                <li
+                                  data-testid="calendar-session"
+                                  class:list={[
+                                    "flex items-baseline justify-between gap-1 rounded px-1 py-0.5 text-[10px] leading-tight",
+                                    session.status === "done"
+                                      ? "bg-brand-soft text-brand"
+                                      : session.status === "skipped"
+                                        ? "text-ink-faint line-through"
+                                        : "bg-sunken text-ink-muted",
+                                  ]}
+                                  title={`${session.topicTitle} — ${session.minutes} min`}
+                                >
+                                  <span class="truncate">{session.topicTitle}</span>
+                                  <span class="tnum shrink-0 opacity-75">{session.minutes} min</span>
+                                </li>
+                              ))}
+                              {day.sessions.length > 3 && (
+                                <li class="text-ink-faint text-[10px]">+{day.sessions.length - 3} więcej</li>
+                              )}
+                            </ul>
+                          )}
+                        </summary>
+
+                        <div class="border-line mt-2 border-t pt-2">
+                          {day.sessions.length > 0 && (
+                            <ul class="mb-2 flex flex-col gap-2">
+                              {day.sessions.map((session) => (
+                                <li class="border-line border-b pb-2 last:border-b-0 last:pb-0">
+                                  <p class="text-[11px] leading-snug font-medium">{session.topicTitle}</p>
+                                  <p class="tnum text-ink-faint mt-0.5 text-[10px]">
+                                    {session.minutes} min · {statusLabel[session.status]}
+                                  </p>
+
+                                  <div class="mt-1.5 flex flex-wrap gap-1">
+                                    {session.status !== "done" && (
+                                      <form method="POST" action={`/api/sessions/${session.id}`}>
+                                        <input type="hidden" name="status" value="done" />
+                                        <input type="hidden" name="month" value={month.monthStart} />
+                                        <button
+                                          type="submit"
+                                          data-testid="panel-mark-done"
+                                          class:list={[tinyButton, "border-brand-line text-brand hover:bg-brand-soft"]}
+                                        >
+                                          Zrobione
+                                        </button>
+                                      </form>
+                                    )}
+                                    <form method="POST" action={`/api/sessions/${session.id}`}>
+                                      <input type="hidden" name="_action" value="delete" />
+                                      <input type="hidden" name="month" value={month.monthStart} />
+                                      <button
+                                        type="submit"
+                                        data-testid="panel-delete-session"
+                                        class:list={[tinyButton, "border-danger-line text-danger hover:bg-danger-soft"]}
+                                      >
+                                        Usuń
+                                      </button>
+                                    </form>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          <form method="POST" action="/api/sessions" class="flex flex-col gap-1.5">
+                            <input type="hidden" name="date" value={day.date} />
+                            <input type="hidden" name="month" value={month.monthStart} />
+
+                            {month.topics.length > 0 && (
+                              <select
+                                name="topicId"
+                                data-testid="panel-topic-select"
+                                aria-label="Istniejący temat"
+                                class:list={panelField}
                               >
-                                <span class="truncate">{session.topicTitle}</span>
-                                <span class="tnum shrink-0 opacity-75">{session.minutes} min</span>
-                              </li>
-                            ))}
-                            {day.sessions.length > 3 && (
-                              <li class="text-ink-faint text-[10px]">+{day.sessions.length - 3} więcej</li>
+                                <option value="">— nowy temat —</option>
+                                {month.topics.map((topic) => (
+                                  <option value={topic.id}>{topic.title}</option>
+                                ))}
+                              </select>
                             )}
-                          </ul>
-                        )}
-                      </a>
+
+                            <input
+                              type="text"
+                              name="newTopicTitle"
+                              maxlength="200"
+                              placeholder="Nazwa nowego tematu"
+                              aria-label="Nazwa nowego tematu"
+                              data-testid="panel-new-topic"
+                              class:list={panelField}
+                            />
+
+                            <div class="flex items-center gap-1">
+                              <input
+                                type="number"
+                                name="minutes"
+                                value="60"
+                                min="1"
+                                max="1440"
+                                step="1"
+                                aria-label="Minuty"
+                                data-testid="panel-minutes"
+                                class:list={["tnum", panelField]}
+                              />
+                              <button
+                                type="submit"
+                                data-testid="panel-add-session"
+                                class="bg-brand text-brand-contrast hover:bg-brand-hover shrink-0 rounded-[10px] px-2.5 py-1.5 text-[11px] font-medium transition-colors active:translate-y-px"
+                              >
+                                Dodaj
+                              </button>
+                            </div>
+                          </form>
+
+                          <a
+                            href={`/dashboard?week=${startOfWeek(day.date)}`}
+                            class="text-ink-faint hover:text-ink mt-2 inline-block text-[10px] underline underline-offset-2"
+                          >
+                            Otwórz tydzień
+                          </a>
+                        </div>
+                      </details>
                     );
                   })}
                 </div>
@@ -218,10 +299,28 @@ const ghostButton =
         </div>
 
         <p class="text-ink-faint mt-6 text-[13px]">
-          Kliknij dowolny dzień, żeby otworzyć jego tydzień w widoku Plan. Plan generuje się tygodniami, bo reguła
-          rozdziela minuty zadeklarowane na dany tydzień.
+          Sesje dodane ręcznie zostają na miejscu, także wtedy, gdy w widoku
+          <a href="/dashboard" class="hover:text-ink mx-1 underline underline-offset-2">
+            Plan
+          </a>
+          poprosisz o automatyczne rozplanowanie tygodnia — reguła omija wieczory, które już zająłeś. Szacowany czas,
+          priorytet i termin tematu ustawisz na stronie
+          <a href="/topics" class="hover:text-ink mx-1 underline underline-offset-2">
+            Tematy
+          </a>
+          .
         </p>
       </>
     )
   }
 </AppLayout>
+
+<script>
+  // The minute fields open with a value in them, so clicking in and typing would
+  // append to it. Selecting on focus makes the existing value a suggestion.
+  document.querySelectorAll("input[type=number]").forEach((field) => {
+    field.addEventListener("focus", () => {
+      (field as HTMLInputElement).select();
+    });
+  });
+</script>

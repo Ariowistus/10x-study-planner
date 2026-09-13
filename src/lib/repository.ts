@@ -184,6 +184,7 @@ export async function deletePlannedSessionsInRange(db: Db, from: IsoDate, to: Is
     .from("sessions")
     .delete()
     .eq("status", "planned")
+    .eq("manual", false)
     .gte("scheduled_date", from)
     .lte("scheduled_date", to);
 
@@ -214,6 +215,41 @@ export async function insertSessions(
 
   if (error) {
     throw new RepositoryError(`Could not save the plan: ${error.message}`);
+  }
+}
+
+/**
+ * Places one block by hand on a given day.
+ *
+ * Marked `manual`, which keeps it out of the sweep that regeneration performs
+ * over planned sessions: the learner's own decision outranks the rule's.
+ */
+export async function insertManualSession(
+  db: Db,
+  userId: string,
+  planId: string,
+  session: { topicId: string; date: IsoDate; minutes: number },
+): Promise<void> {
+  const { error } = await db.from("sessions").insert({
+    user_id: userId,
+    plan_id: planId,
+    topic_id: session.topicId,
+    scheduled_date: session.date,
+    minutes: session.minutes,
+    manual: true,
+  });
+
+  if (error) {
+    throw new RepositoryError(`Nie udało się dodać sesji: ${error.message}`);
+  }
+}
+
+/** Removes a single session, whoever placed it. */
+export async function deleteSession(db: Db, sessionId: string): Promise<void> {
+  const { error } = await db.from("sessions").delete().eq("id", sessionId);
+
+  if (error) {
+    throw new RepositoryError(`Nie udało się usunąć sesji: ${error.message}`);
   }
 }
 

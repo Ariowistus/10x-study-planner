@@ -39,6 +39,8 @@ export interface SessionView {
   date: IsoDate;
   minutes: number;
   status: SessionStatus;
+  /** Placed by the learner rather than by the scheduling rule. */
+  manual: boolean;
 }
 
 export interface TopicProgress {
@@ -75,7 +77,10 @@ export async function regenerateWeek(db: Db, userId: string, weekStart: IsoDate)
     listSessionsInRange(db, weekStart, weekEnd),
   ]);
 
-  const settled = existing.filter((session) => session.status !== "planned");
+  // A block the learner placed by hand counts as settled even while it is still
+  // "planned": it survives regeneration, so the evening it occupies is no longer
+  // free to allocate.
+  const settled = existing.filter((session) => session.status !== "planned" || session.manual);
 
   // Days that already passed cannot be planned into, and evenings already spent
   // on a settled session no longer have that capacity to give.
@@ -115,10 +120,11 @@ export async function loadWeekView(db: Db, weekStart: IsoDate): Promise<WeekView
   const views: SessionView[] = sessionRows.map((row: SessionRow) => ({
     id: row.id,
     topicId: row.topic_id,
-    topicTitle: titleById.get(row.topic_id) ?? "Removed topic",
+    topicTitle: titleById.get(row.topic_id) ?? "Usunięty temat",
     date: row.scheduled_date,
     minutes: row.minutes,
     status: row.status,
+    manual: row.manual,
   }));
 
   const days = Array.from({ length: 7 }, (_, offset) => {
@@ -176,6 +182,8 @@ export interface MonthView {
   monthStart: IsoDate;
   monthEnd: IsoDate;
   weeks: MonthDay[][];
+  /** Active topics, for the day panel to offer when placing a block. */
+  topics: Topic[];
   plannedMinutes: number;
   completedMinutes: number;
   availableMinutes: number;
@@ -206,7 +214,8 @@ export async function loadMonthView(db: Db, anyDayInMonth: IsoDate, today: IsoDa
     listSessionsInRange(db, gridStart, gridEnd),
   ]);
 
-  const titleById = new Map(topicRows.map(toTopic).map((topic) => [topic.id, topic.title]));
+  const topics = topicRows.map(toTopic);
+  const titleById = new Map(topics.map((topic) => [topic.id, topic.title]));
 
   const views: SessionView[] = sessionRows.map((row: SessionRow) => ({
     id: row.id,
@@ -215,6 +224,7 @@ export async function loadMonthView(db: Db, anyDayInMonth: IsoDate, today: IsoDa
     date: row.scheduled_date,
     minutes: row.minutes,
     status: row.status,
+    manual: row.manual,
   }));
 
   const dayCount = (Date.parse(`${gridEnd}T00:00:00.000Z`) - Date.parse(`${gridStart}T00:00:00.000Z`)) / 86_400_000 + 1;
@@ -251,6 +261,7 @@ export async function loadMonthView(db: Db, anyDayInMonth: IsoDate, today: IsoDa
     monthStart,
     monthEnd,
     weeks,
+    topics: topics.filter((topic) => topic.status !== "archived"),
     plannedMinutes: inMonth.reduce((sum, day) => sum + day.plannedMinutes, 0),
     completedMinutes: inMonth.reduce((sum, day) => sum + day.completedMinutes, 0),
     availableMinutes: inMonth.reduce((sum, day) => sum + day.availableMinutes, 0),

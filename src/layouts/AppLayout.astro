@@ -30,14 +30,13 @@ const navOff = "text-ink-muted hover:bg-sunken hover:text-ink";
   <body class="bg-surface text-ink min-h-[100dvh]">
     <header class="border-line bg-surface/85 sticky top-0 z-30 border-b backdrop-blur-sm">
       <div class="mx-auto flex h-16 max-w-5xl items-center gap-4 px-4">
-        <a href="/dashboard" class="text-ink text-[15px] font-semibold tracking-tight whitespace-nowrap">
+        <a href="/calendar" class="text-ink text-[15px] font-semibold tracking-tight whitespace-nowrap">
           Study Planner
         </a>
 
         <nav class="flex items-center gap-1" aria-label="Główna">
-          <a href="/dashboard" class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a>
           <a href="/calendar" class:list={`${navBase} ${active === "calendar" ? navOn : navOff}`}>Kalendarz</a>
-          <a href="/topics" class:list={`${navBase} ${active === "topics" ? navOn : navOff}`}>Tematy</a>
+          <a href="/dashboard" class:list={`${navBase} ${active === "dashboard" ? navOn : navOff}`}>Plan</a>
         </nav>
 
         <div class="ml-auto flex items-center gap-3">

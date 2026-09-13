@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 
 import { authenticate, describeFailure, formValues, redirectError, redirectWith } from "@/lib/api";
-import { setSessionStatus } from "@/lib/repository";
+import { deleteSession, setSessionStatus } from "@/lib/repository";
 import { sessionStatusSchema } from "@/lib/validation";
 
 export const prerender = false;
@@ -28,21 +28,35 @@ export const POST: APIRoute = async (context) => {
   const sessionId = context.params.id;
   const values = await formValues(context.request);
   const week = values.week ?? "";
-  const back = week ? `/dashboard?week=${encodeURIComponent(week)}` : "/dashboard";
+  const month = values.month ?? "";
+
+  // The same endpoint serves the week view and the calendar, so it returns the
+  // learner to whichever one they posted from.
+  const back = month
+    ? `/calendar?month=${encodeURIComponent(month)}`
+    : week
+      ? `/dashboard?week=${encodeURIComponent(week)}`
+      : "/dashboard";
+  const destination = month ? "/calendar" : "/dashboard";
+  const locationParam: Record<string, string> = month ? { month } : week ? { week } : {};
 
   if (!sessionId) {
     return redirectError(context, back, "Brak identyfikatora sesji");
   }
 
   try {
+    if (values._action === "delete") {
+      await deleteSession(auth.db, sessionId);
+      return redirectWith(context, destination, { ...locationParam, ok: "Usunięto sesję" });
+    }
+
     const { status } = sessionStatusSchema.parse(values);
     await setSessionStatus(auth.db, sessionId, status);
 
-    const params: Record<string, string> = { ok: `Oznaczono sesję jako ${SESSION_STATUS_PL[status]}` };
-    if (week) {
-      params.week = week;
-    }
-    return redirectWith(context, "/dashboard", params);
+    return redirectWith(context, destination, {
+      ...locationParam,
+      ok: `Oznaczono sesję jako ${SESSION_STATUS_PL[status]}`,
+    });
   } catch (cause) {
     return redirectError(context, back, describeFailure(cause).message);
   }
