@@ -126,17 +126,15 @@ const formatMinutes = (n: number) =>
               <input type="hidden" name="week" value={weekStart} />
               <input type="search" name="q" value={q} placeholder="Szukaj zajęcia…" aria-label="Szukaj zajęcia" />
               <select name="filter" aria-label="Status zajęć">
-                <>
-                  <option value="all" selected={filter === "all"}>
-                    Wszystkie
+                {[
+                  { value: "all", label: "Wszystkie" },
+                  { value: "planned", label: "Do zrobienia" },
+                  { value: "done", label: "Zrobione" },
+                ].map((option) => (
+                  <option value={option.value} selected={filter === option.value}>
+                    {option.label}
                   </option>
-                  <option value="planned" selected={filter === "planned"}>
-                    Do zrobienia
-                  </option>
-                  <option value="done" selected={filter === "done"}>
-                    Zrobione
-                  </option>
-                </>
+                ))}
               </select>
               <button class="action-secondary">Filtruj</button>
             </form>
