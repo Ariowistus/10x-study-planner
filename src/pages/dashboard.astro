@@ -284,13 +284,25 @@ const tinyButton = "rounded-[10px] border px-2 py-1 text-xs font-medium transiti
                 <li data-testid="progress-item" data-topic-title={entry.topic.title}>
                   <div class="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <span class="text-[15px] font-medium">{entry.topic.title}</span>
-                    <span class="tnum text-ink-faint text-[13px]">
+                    <span class="tnum text-ink-faint flex items-baseline gap-3 text-[13px]">
                       {entry.topic.completedMinutes}
                       {` z ${entry.topic.estimatedMinutes} min, `}
                       <span data-testid="progress-percent" class="text-ink-muted font-medium">
                         {entry.percentComplete}
                       </span>
                       {"%"}
+                      <form method="POST" action={`/api/topics/${entry.topic.id}`} class="inline">
+                        <input type="hidden" name="_action" value="delete" />
+                        <input type="hidden" name="week" value={week.weekStart} />
+                        <button
+                          type="submit"
+                          data-testid="delete-topic-from-plan"
+                          title="Usuwa temat i wszystkie jego sesje"
+                          class="text-ink-faint hover:text-danger text-[12px] underline underline-offset-2 transition-colors"
+                        >
+                          Usuń
+                        </button>
+                      </form>
                     </span>
                   </div>
                   <div class="bg-sunken h-1.5 w-full overflow-hidden rounded-full">

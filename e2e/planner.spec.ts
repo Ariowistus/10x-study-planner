@@ -509,3 +509,36 @@ test.describe("adding to a day that already has work", () => {
     await expect(both).toContainText("90 min");
   });
 });
+
+test.describe("removing a topic from the plan", () => {
+  // Topics are created by typing them into a day, so they also have to be
+  // removable from where they are visible — the week view's progress list.
+  test("deletes the topic and the sessions that belonged to it", async ({ page }) => {
+    await registerAndSignIn(page);
+
+    const target = nextWeekMonday();
+    await page.goto(`/calendar?month=${target}&day=${target}`);
+
+    const cell = page.locator(`[data-testid="calendar-day"][data-date="${target}"]`);
+    await cell.getByTestId("panel-new-topic").fill("Do wyrzucenia");
+    await cell.getByTestId("panel-minutes").fill("60");
+    await cell.getByTestId("panel-add-session").click();
+    await expect(page.getByTestId("flash-ok")).toContainText("Dodano sesję");
+
+    await page.goto(`/dashboard?week=${target}`);
+    await expect(page.getByTestId("progress-item")).toHaveCount(1);
+    await expect(page.getByTestId("session")).toHaveCount(1);
+
+    await page.getByTestId("delete-topic-from-plan").first().click();
+
+    await expect(page.getByTestId("flash-ok")).toContainText("Usunięto temat");
+    await expect(page.getByTestId("progress-item")).toHaveCount(0);
+    // Sessions belong to the topic, so they go with it.
+    await expect(page.getByTestId("session")).toHaveCount(0);
+
+    await page.goto(`/calendar?month=${target}`);
+    await expect(page.locator(`[data-testid="calendar-day"][data-date="${target}"]`)).not.toContainText(
+      "Do wyrzucenia",
+    );
+  });
+});

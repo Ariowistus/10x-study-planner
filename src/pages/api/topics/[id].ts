@@ -20,24 +20,32 @@ export const POST: APIRoute = async (context) => {
 
   const topicId = context.params.id;
   if (!topicId) {
-    return redirectError(context, "/topics", "Missing topic id");
+    return redirectError(context, "/topics", "Brak identyfikatora tematu");
   }
 
-  try {
-    const values = await formValues(context.request);
+  const values = await formValues(context.request);
 
+  // Topics are edited from the topics page and deleted from the week view's
+  // progress list, so the endpoint returns the learner where they acted.
+  const week = values.week ?? "";
+  const destination = week ? "/dashboard" : "/topics";
+  const locationParam: Record<string, string> = week ? { week } : {};
+  const back = week ? `/dashboard?week=${encodeURIComponent(week)}` : "/topics";
+
+  try {
     if (values._action === "delete") {
       await deleteTopic(auth.db, topicId);
-      return redirectWith(context, "/topics", { ok: "Usunięto temat" });
+      return redirectWith(context, destination, { ...locationParam, ok: "Usunięto temat" });
     }
 
-    const { _action, ...rest } = values;
+    const { _action, week: _week, ...rest } = values;
     void _action;
+    void _week;
 
     const patch = topicUpdateSchema.parse(rest);
     await updateTopic(auth.db, topicId, patch);
-    return redirectWith(context, "/topics", { ok: "Zaktualizowano temat" });
+    return redirectWith(context, destination, { ...locationParam, ok: "Zaktualizowano temat" });
   } catch (cause) {
-    return redirectError(context, "/topics", describeFailure(cause).message);
+    return redirectError(context, back, describeFailure(cause).message);
   }
 };
